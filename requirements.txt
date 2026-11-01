@@ -1,3 +1,11 @@
+# Shared team dependencies, including the standalone predictor requirements.
+numpy>=1.24
 torch>=2.2,<3
-PyYAML>=6,<7
+matplotlib>=3.7
+tqdm>=4.66
 pytest>=8,<10
+PyYAML>=6,<7
+
+# optional: live monitoring (pick one, or neither)
+tensorboard>=2.15
+# wandb>=0.16

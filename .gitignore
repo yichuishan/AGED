@@ -1,5 +1,33 @@
+# data — never commit the dataset (licence + size)
+data/h36m/
+data/h36m3d/
+data/*.zip
+*.npy
+*.npz
+
+# checkpoints and runs
+checkpoints/
+runs/
+outputs/
+experiments/*/
+!experiments/.gitkeep
+
+# figures are generated
+figures/
+*.gif
+# except the two committed to the docs
+!docs/media/*.gif
+!docs/media/*.png
+
+# python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
-outputs/
+venv/
+.ipynb_checkpoints/
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/
