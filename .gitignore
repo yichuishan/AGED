@@ -9,7 +9,7 @@ data/*.zip
 checkpoints/
 runs/
 outputs/
-experiments/*/
+experiments/*
 !experiments/.gitkeep
 
 # figures are generated
@@ -26,6 +26,9 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
 
 # os / editors
 .DS_Store
