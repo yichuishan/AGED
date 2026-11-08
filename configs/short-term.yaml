@@ -1,0 +1,16 @@
+# Paper values; see docs/PAPER_ALIGNMENT.md for assumptions and missing details.
+variant: full
+observed_length: 50
+prediction_length: 10
+hidden_dim: 1024
+critic_hidden_dim: 1024
+epochs: 50
+batch_size: 16
+learning_rate: 0.005
+lambda_adv: 0.6
+gradient_clip: 5.0
+steps_per_epoch: 2000  # Engineering choice; not specified by the paper.
+condition_decoder: true  # Interpretation, not explicit in the paper.
+share_recurrent_weights: false  # Interpretation, not explicit in the paper.
+adversarial_objective: minimax
+geodesic_reduction: sum
