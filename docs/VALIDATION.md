@@ -83,6 +83,8 @@ client; no external wandb account or remote service connection was tested.
 
 The subsequently supplied `integration-checks.zip` records commit `224b948` on
 Windows / RTX 4070 / PyTorch 2.15.0+cu132 with a 210-file real H3.6M export.
+The [original report, logs, configurations and results](integration-checks/README.md)
+are preserved byte-for-byte under `docs/integration-checks/224b948/`.
 Its 22 pipeline steps succeeded, including 14 automated tests and a CUDA case;
 four separate optimizer diagnostics also completed. This is an external team
 record, not a rerun in the current CPU environment or GPU validation of all

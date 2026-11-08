@@ -19,6 +19,9 @@ not been reproduced.** Start with the
 [paper alignment](docs/PAPER_ALIGNMENT.md),
 [source audit](docs/PROVENANCE.md) and [validation scope](docs/VALIDATION.md).
 
+The team's original GPU report, logs and result files are preserved under
+[docs/integration-checks/224b948](docs/integration-checks/README.md).
+
 The remaining team branches are now reconciled functionally. See
 [team contributions and compatibility](docs/TEAM_INTEGRATION.md) for the source
 commits, preserved capabilities, and compatibility boundaries. Existing commands,

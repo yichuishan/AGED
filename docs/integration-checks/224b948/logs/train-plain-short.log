@@ -1,0 +1,4 @@
+variant=plain device=cuda motion_dim=48 horizon=10
+train_subjects=['S1', 'S6', 'S7', 'S8', 'S9', 'S11']; validation=None; S5 excluded from training
+{"epoch": 1, "generator_loss": 0.9794078588485717, "reconstruction": 0.9794078588485717, "generator_adversarial": 0.0, "generator_grad_norm": 2.732407268285751, "seconds": 3.8280000000004293}
+Checkpoint: C:\Users\hxche\Documents\GitHub\ai6103-team-project-aged-reimplementation\experiments\integration-check-224b948-20261108-1451\runs\plain-short\last.pt

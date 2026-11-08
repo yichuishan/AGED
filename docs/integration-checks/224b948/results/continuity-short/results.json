@@ -1,0 +1,76 @@
+{
+  "config": {
+    "variant": "continuity",
+    "observed_length": 50,
+    "prediction_length": 10,
+    "hidden_dim": 1024,
+    "critic_hidden_dim": 1024,
+    "condition_decoder": true,
+    "share_recurrent_weights": false,
+    "epochs": 1,
+    "batch_size": 16,
+    "learning_rate": 0.005,
+    "lambda_adv": 0.6,
+    "gradient_clip": 5.0,
+    "steps_per_epoch": 200,
+    "validation_windows": 256,
+    "val_subject": null,
+    "actions": [
+      "directions",
+      "discussion",
+      "eating",
+      "greeting",
+      "phoning",
+      "posing",
+      "purchases",
+      "sitting",
+      "sittingdown",
+      "smoking",
+      "takingphoto",
+      "waiting",
+      "walking",
+      "walkingdog",
+      "walkingtogether"
+    ],
+    "seed": 0,
+    "device": "cuda",
+    "threads": 1,
+    "num_workers": 0,
+    "track": "none",
+    "adversarial_objective": "minimax",
+    "geodesic_reduction": "sum"
+  },
+  "environment": {
+    "python": "3.12.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.15.0+cu132",
+    "numpy": "2.5.4",
+    "PyYAML": "6.0.3",
+    "cuda_available": true,
+    "commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+    "selected_device": "cuda"
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "continuity_accuracy": 0.98609375,
+      "discriminator_loss": 0.10723957706752117,
+      "discriminator_grad_norm": 0.5911673156567849,
+      "generator_loss": 274.91893276214597,
+      "reconstruction": 274.9284046936035,
+      "generator_adversarial": -0.015787006684349764,
+      "generator_grad_norm": 578.4714562988281,
+      "seconds": 7.530999999999949
+    }
+  ],
+  "data_root": "C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\data\\h36m",
+  "train_subjects": [
+    "S1",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S11"
+  ],
+  "test_subject_used_for_selection": false
+}

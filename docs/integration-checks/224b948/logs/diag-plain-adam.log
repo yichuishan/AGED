@@ -1,0 +1,11 @@
+S11 zero-velocity euler: {80: 0.3105008809303175, 160: 0.5444943803890436, 320: 0.8987732232044264, 400: 1.0638746260591863}  mean 0.704
+variant=plain optimizer=adam lr=0.005 steps=2000 batch=16 clip=5.0 lambda_adv=0.6
+step   250  rec      0.891  zero-vel    0.141  gnorm          2.3  fid_acc nan  con_acc nan  S11 euler 2.507  (5s)
+step   500  rec    307.652  zero-vel    0.151  gnorm      60040.2  fid_acc nan  con_acc nan  S11 euler 10.087  (9s)
+step   750  rec   1163.768  zero-vel    0.153  gnorm    2192465.5  fid_acc nan  con_acc nan  S11 euler 10.341  (14s)
+step  1000  rec   1714.008  zero-vel    0.157  gnorm    2261856.0  fid_acc nan  con_acc nan  S11 euler 10.586  (19s)
+step  1250  rec   1727.404  zero-vel    0.177  gnorm    5458203.2  fid_acc nan  con_acc nan  S11 euler 10.285  (23s)
+step  1500  rec   2026.186  zero-vel    0.154  gnorm  289067220.4  fid_acc nan  con_acc nan  S11 euler 10.386  (28s)
+step  1750  rec   2145.060  zero-vel    0.159  gnorm    8334251.9  fid_acc nan  con_acc nan  S11 euler 10.242  (32s)
+step  2000  rec   2546.586  zero-vel    0.152  gnorm   13011117.6  fid_acc nan  con_acc nan  S11 euler 10.155  (37s)
+final S11 euler per horizon: {80: 10.260439007035764, 160: 10.102512026194907, 320: 10.229778632109033, 400: 10.027944649481235}

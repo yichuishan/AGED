@@ -1,0 +1,4 @@
+variant=euclidean device=cuda motion_dim=48 horizon=10
+train_subjects=['S1', 'S6', 'S7', 'S8', 'S9', 'S11']; validation=None; S5 excluded from training
+{"epoch": 1, "fidelity_accuracy": 0.97484375, "continuity_accuracy": 0.96921875, "discriminator_loss": 0.39355099987064024, "discriminator_grad_norm": 1.8395460078585892, "generator_loss": 87.78355491757392, "reconstruction": 87.82091087549925, "generator_adversarial": -0.06226078011810387, "generator_grad_norm": 16098.463598232269, "seconds": 8.061999999999898}
+Checkpoint: C:\Users\hxche\Documents\GitHub\ai6103-team-project-aged-reimplementation\experiments\integration-check-224b948-20261108-1451\runs\euclidean-short\last.pt

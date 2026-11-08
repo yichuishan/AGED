@@ -1,0 +1,640 @@
+{
+  "purpose": "small GPU integration check on the full dataset; NOT a benchmark result",
+  "started": "2026-11-08 14:51:32 +0800",
+  "git": {
+    "commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+    "short": "224b948",
+    "branch": "main",
+    "subject": "Update README.md",
+    "commit_date": "2026-11-08T13:19:57+08:00",
+    "origin_main": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+    "integration_branch": {
+      "ref": "origin/integration/full-aged",
+      "commit": "06490d7e2282aa06a29fb76e60c5f896300e3275"
+    },
+    "src_and_configs_identical_to_integration_branch": true,
+    "files_differing_from_integration_branch": [
+      "README.md",
+      "data/README.md",
+      "docs/PROVENANCE.md",
+      "docs/VALIDATION.md",
+      "scripts/setup.sh"
+    ],
+    "tracked_changes": "none (clean)"
+  },
+  "environment": {
+    "python": "3.12.1",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.15.0+cu132",
+    "torch_cuda": "13.2",
+    "cudnn": 92600,
+    "gpu": "NVIDIA GeForce RTX 4070",
+    "gpu_memory_gib": 12.0,
+    "driver": "610.88",
+    "numpy": "2.5.4"
+  },
+  "outputs": {
+    "record": "docs/integration-checks/224b948",
+    "checkpoints_and_tensorboard": "experiments/integration-check-224b948-20261108-1451"
+  },
+  "dataset": {
+    "root": "data/h36m",
+    "files": 210,
+    "files_per_subject": {
+      "S1": 30,
+      "S11": 30,
+      "S5": 30,
+      "S6": 30,
+      "S7": 30,
+      "S8": 30,
+      "S9": 30
+    },
+    "bytes": 561444622,
+    "sha256_of_paths_and_contents": "cd922e8d3b43accb8d641d468817e9473f949593de51928e8efd70c7f70c8d2b"
+  },
+  "configs": {
+    "short-term.yaml": "# Paper values; see docs/PAPER_ALIGNMENT.md for assumptions and missing details.\nvariant: full\nobserved_length: 50\nprediction_length: 10\nhidden_dim: 1024\ncritic_hidden_dim: 1024\nepochs: 50\nbatch_size: 16\nlearning_rate: 0.005\nlambda_adv: 0.6\ngradient_clip: 5.0\nsteps_per_epoch: 2000  # Engineering choice; not specified by the paper.\ncondition_decoder: true  # Interpretation, not explicit in the paper.\nshare_recurrent_weights: false  # Interpretation, not explicit in the paper.\nadversarial_objective: minimax\ngeodesic_reduction: sum\n",
+    "long-term.yaml": "variant: full\nobserved_length: 50\nprediction_length: 25\nhidden_dim: 1024\ncritic_hidden_dim: 1024\nepochs: 50\nbatch_size: 16\nlearning_rate: 0.005\nlambda_adv: 0.6\ngradient_clip: 5.0\nsteps_per_epoch: 2000\ncondition_decoder: true\nshare_recurrent_weights: false\nadversarial_objective: minimax\ngeodesic_reduction: sum\n"
+  },
+  "check_overrides": {
+    "variant runs": "--epochs 1 --steps-per-epoch 200",
+    "resume": "--resume full-short/last.pt --epochs 2",
+    "long-term": "--epochs 1 --steps-per-epoch 200",
+    "dev (S11 validation)": "--val-subject S11 --track tensorboard --epochs 2 --steps-per-epoch 100",
+    "device": "cuda"
+  },
+  "implementation_choices_at_this_commit": {
+    "optimizer": "torch.optim.Adam (default betas/eps, no weight decay) for predictor and for critics, lr from config (src/aged/train.py:136,138); hard-coded, not set by the YAML configs",
+    "lr_schedule": "none: constant learning rate (no scheduler in src/aged/train.py)",
+    "update_schedule": "per batch: one joint critic step (both critics, one optimizer) then one predictor step (src/aged/train.py:43-85)",
+    "adversarial_objective": "minimax: predictor minimises -softplus(logit) = log(1-D(fake)); critics trained with BCE on logits; lambda_adv 0.6",
+    "gradient_clipping": "clip_grad_norm 5.0 separately for critics and predictor; error_if_nonfinite=True",
+    "discriminator": "src/aged/critics.py: Linear(K->H) -> 1-layer GRU(H) -> Linear(H->1) on the final hidden state, H = critic_hidden_dim 1024; fidelity critic sees the predicted 10/25 frames, continuity critic sees observed+predicted",
+    "sampling": "src/aged/data.py:96-130: random windows; recording chosen with probability proportional to its number of valid windows, start uniform within it; RNG keyed by (seed, epoch, index); steps_per_epoch*batch_size windows per epoch; no shuffling beyond that",
+    "geodesic_loss": "src/aged/losses.py:61-69: sum over future frames and joints of d_G (not squared), mean over batch",
+    "features": "K = varying body-rotation channels from index 6 onward; root rotation and translation excluded",
+    "evaluation": "src/aged/evaluate.py: S5, 8 fixed windows per action (RandomState 1234567890), Euler-angle L2 on raw targets"
+  },
+  "finished": "2026-11-08 14:59:07 +0800",
+  "steps": [
+    {
+      "name": "pytest",
+      "kind": "check",
+      "command": "python -m pytest -q",
+      "returncode": 0,
+      "seconds": 14.9
+    },
+    {
+      "name": "baseline-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --baseline --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\results\\zero-velocity.json",
+      "returncode": 0,
+      "seconds": 5.0
+    },
+    {
+      "name": "baseline-long",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --baseline --horizon 25 --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\results\\zero-velocity-long.json",
+      "returncode": 0,
+      "seconds": 5.0
+    },
+    {
+      "name": "train-full-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant full --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short",
+      "returncode": 0,
+      "seconds": 17.0
+    },
+    {
+      "name": "eval-full-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "train-geodesic-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant geodesic --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\geodesic-short",
+      "returncode": 0,
+      "seconds": 12.7
+    },
+    {
+      "name": "eval-geodesic-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\geodesic-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\geodesic-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "train-euclidean-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant euclidean --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\euclidean-short",
+      "returncode": 0,
+      "seconds": 16.6
+    },
+    {
+      "name": "eval-euclidean-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\euclidean-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\euclidean-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "train-plain-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant plain --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\plain-short",
+      "returncode": 0,
+      "seconds": 12.2
+    },
+    {
+      "name": "eval-plain-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\plain-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\plain-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "train-fidelity-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant fidelity --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\fidelity-short",
+      "returncode": 0,
+      "seconds": 14.0
+    },
+    {
+      "name": "eval-fidelity-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\fidelity-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\fidelity-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "train-continuity-short",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --variant continuity --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\continuity-short",
+      "returncode": 0,
+      "seconds": 15.9
+    },
+    {
+      "name": "eval-continuity-short",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\continuity-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\continuity-short\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.5
+    },
+    {
+      "name": "resume-full-short-to-epoch2",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short --resume C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short\\last.pt --epochs 2",
+      "returncode": 0,
+      "seconds": 14.7
+    },
+    {
+      "name": "eval-full-short-resumed",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-short\\test-results-epoch2.json",
+      "returncode": 0,
+      "seconds": 2.7
+    },
+    {
+      "name": "train-full-long",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/long-term.yaml --epochs 1 --steps-per-epoch 200 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-long",
+      "returncode": 0,
+      "seconds": 21.8
+    },
+    {
+      "name": "eval-full-long-h25",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --horizon 25 --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-long\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-long\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.6
+    },
+    {
+      "name": "eval-full-long-h100",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --horizon 100 --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-long\\last.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\full-long\\rollout-100.json",
+      "returncode": 0,
+      "seconds": 3.1
+    },
+    {
+      "name": "train-dev-full-S11",
+      "kind": "check",
+      "command": "python -m aged.train --root data/h36m --device cuda --config configs/short-term.yaml --val-subject S11 --track tensorboard --epochs 2 --steps-per-epoch 100 --out C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\dev-full",
+      "returncode": 0,
+      "seconds": 17.6
+    },
+    {
+      "name": "eval-dev-full-best",
+      "kind": "check",
+      "command": "python -m aged.evaluate --root data/h36m --device cuda --checkpoint C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\dev-full\\best.pt --output C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\experiments\\integration-check-224b948-20261108-1451\\runs\\dev-full\\test-results.json",
+      "returncode": 0,
+      "seconds": 2.6
+    },
+    {
+      "name": "diag-plain-adam",
+      "kind": "diagnostic",
+      "command": "python C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\optim_diag.py data/h36m plain adam 0.005 2000 250",
+      "returncode": 0,
+      "seconds": 44.6
+    },
+    {
+      "name": "diag-plain-sgd",
+      "kind": "diagnostic",
+      "command": "python C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\optim_diag.py data/h36m plain sgd 0.005 2000 250",
+      "returncode": 0,
+      "seconds": 40.6
+    },
+    {
+      "name": "diag-full-adam",
+      "kind": "diagnostic",
+      "command": "python C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\optim_diag.py data/h36m full adam 0.005 2000 250",
+      "returncode": 0,
+      "seconds": 90.4
+    },
+    {
+      "name": "diag-full-sgd",
+      "kind": "diagnostic",
+      "command": "python C:\\Users\\hxche\\Documents\\GitHub\\ai6103-team-project-aged-reimplementation\\docs\\integration-checks\\224b948\\optim_diag.py data/h36m full sgd 0.005 2000 250",
+      "returncode": 0,
+      "seconds": 85.9
+    }
+  ],
+  "all_checks_succeeded": true,
+  "all_diagnostics_succeeded": true,
+  "runs": {
+    "continuity-short": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 37.7,
+      "last_epoch": {
+        "epoch": 1,
+        "continuity_accuracy": 0.98609375,
+        "discriminator_loss": 0.10723957706752117,
+        "discriminator_grad_norm": 0.5911673156567849,
+        "generator_loss": 274.91893276214597,
+        "reconstruction": 274.9284046936035,
+        "generator_adversarial": -0.015787006684349764,
+        "generator_grad_norm": 578.4714562988281
+      },
+      "checkpoints": {
+        "last.pt": 229529136
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 8.575540544025852,
+            "160": 8.842661669336671,
+            "320": 9.986115741182893,
+            "400": 10.455731354147115
+          }
+        },
+        "finite": true
+      }
+    },
+    "dev-full": {
+      "epochs_completed": 2,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 41.9,
+      "last_epoch": {
+        "epoch": 2,
+        "fidelity_accuracy": 0.9996875,
+        "continuity_accuracy": 0.998125,
+        "discriminator_loss": 0.014220254869433119,
+        "discriminator_grad_norm": 0.3273995188763365,
+        "generator_loss": 322.409072265625,
+        "reconstruction": 322.40996307373047,
+        "generator_adversarial": -0.0014860527254313637,
+        "generator_grad_norm": 1163.4631130981445,
+        "validation_loss": 330.68705558776855,
+        "validation_angle_error": {
+          "80": 10.00432089184502,
+          "160": 9.974837894415968,
+          "320": 10.249926677999483,
+          "400": 10.196254355913913
+        }
+      },
+      "checkpoints": {
+        "best.pt": 305723939,
+        "last.pt": 305724195
+      },
+      "tensorboard_event_files": 1,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 9.024373328872167,
+            "160": 8.719835760514593,
+            "320": 9.295864704199397,
+            "400": 9.912576003572251
+          }
+        },
+        "finite": true
+      }
+    },
+    "euclidean-short": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 40.3,
+      "last_epoch": {
+        "epoch": 1,
+        "fidelity_accuracy": 0.97484375,
+        "continuity_accuracy": 0.96921875,
+        "discriminator_loss": 0.39355099987064024,
+        "discriminator_grad_norm": 1.8395460078585892,
+        "generator_loss": 87.78355491757392,
+        "reconstruction": 87.82091087549925,
+        "generator_adversarial": -0.06226078011810387,
+        "generator_grad_norm": 16098.463598232269
+      },
+      "checkpoints": {
+        "last.pt": 305723811
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 11.166367151214935,
+            "160": 11.068035090889664,
+            "320": 10.580442337493237,
+            "400": 10.509962502423852
+          }
+        },
+        "finite": true
+      }
+    },
+    "fidelity-short": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 27.6,
+      "last_epoch": {
+        "epoch": 1,
+        "fidelity_accuracy": 0.98265625,
+        "discriminator_loss": 0.11919478804215032,
+        "discriminator_grad_norm": 0.6516386743437033,
+        "generator_loss": 274.3976847076416,
+        "reconstruction": 274.40569717407226,
+        "generator_adversarial": -0.013353882153060112,
+        "generator_grad_norm": 521.4760564422608
+      },
+      "checkpoints": {
+        "last.pt": 229529072
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 8.151399377914926,
+            "160": 8.83768531909837,
+            "320": 9.93788567147122,
+            "400": 10.105112028199708
+          }
+        },
+        "finite": true
+      }
+    },
+    "full-long": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 64.1,
+      "last_epoch": {
+        "epoch": 1,
+        "fidelity_accuracy": 0.99046875,
+        "continuity_accuracy": 0.9859375,
+        "discriminator_loss": 0.13579467062663753,
+        "discriminator_grad_norm": 0.8292370992084034,
+        "generator_loss": 824.3093930053711,
+        "reconstruction": 824.3245059204102,
+        "generator_adversarial": -0.02518562904861028,
+        "generator_grad_norm": 1455.4546304321289
+      },
+      "checkpoints": {
+        "last.pt": 305723811
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 25,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329,
+            "560": 1.4173426138044707,
+            "1000": 1.847845684962365
+          },
+          "model": {
+            "80": 10.276368130685809,
+            "160": 10.257162030991896,
+            "320": 10.39063654269031,
+            "400": 10.427341651889414,
+            "560": 10.411395776331817,
+            "1000": 10.39440896397323
+          }
+        },
+        "finite": true
+      },
+      "rollout-100.json": {
+        "epoch": 1,
+        "prediction_length": 100,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329,
+            "560": 1.4173426138044707,
+            "1000": 1.847845684962365
+          },
+          "model": {
+            "80": 10.276368130685809,
+            "160": 10.257162030991896,
+            "320": 10.39063654269031,
+            "400": 10.427341651889414,
+            "560": 10.411395776331817,
+            "1000": 10.39440896397323
+          }
+        },
+        "finite": true
+      }
+    },
+    "full-short": {
+      "epochs_completed": 2,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 43.4,
+      "last_epoch": {
+        "epoch": 2,
+        "fidelity_accuracy": 0.99953125,
+        "continuity_accuracy": 0.99953125,
+        "discriminator_loss": 0.005964874753590266,
+        "discriminator_grad_norm": 0.2371877694828436,
+        "generator_loss": 316.88954864501954,
+        "reconstruction": 316.88984466552733,
+        "generator_adversarial": -0.0004920325076591325,
+        "generator_grad_norm": 15523.980295257568
+      },
+      "checkpoints": {
+        "last.pt": 305724387
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 9.065228840446446,
+            "160": 8.926260718260892,
+            "320": 9.526560340933088,
+            "400": 10.090700407634504
+          }
+        },
+        "finite": true
+      },
+      "test-results-epoch2.json": {
+        "epoch": 2,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 10.663219094579892,
+            "160": 10.279624552113678,
+            "320": 10.711757019707527,
+            "400": 10.508057311520137
+          }
+        },
+        "finite": true
+      }
+    },
+    "geodesic-short": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 21.8,
+      "last_epoch": {
+        "epoch": 1,
+        "generator_loss": 285.9406742095947,
+        "reconstruction": 285.9406742095947,
+        "generator_adversarial": 0.0,
+        "generator_grad_norm": 874.3628694152832
+      },
+      "checkpoints": {
+        "last.pt": 153334215
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 9.822573718861978,
+            "160": 9.770298331101904,
+            "320": 10.14379369094561,
+            "400": 9.987202145802545
+          }
+        },
+        "finite": true
+      }
+    },
+    "plain-short": {
+      "epochs_completed": 1,
+      "recorded_commit": "224b9489b74d3e20f3a6c93d4ac2e4269a749274",
+      "selected_device": "cuda",
+      "ms_per_step_last_epoch": 19.1,
+      "last_epoch": {
+        "epoch": 1,
+        "generator_loss": 0.9794078588485717,
+        "reconstruction": 0.9794078588485717,
+        "generator_adversarial": 0.0,
+        "generator_grad_norm": 2.732407268285751
+      },
+      "checkpoints": {
+        "last.pt": 153334215
+      },
+      "tensorboard_event_files": 0,
+      "history_finite": true,
+      "test-results.json": {
+        "epoch": 1,
+        "prediction_length": 10,
+        "average": {
+          "zero_velocity": {
+            "80": 0.4015185407399875,
+            "160": 0.7088371913939598,
+            "320": 1.0729179454108235,
+            "400": 1.2061676653805329
+          },
+          "model": {
+            "80": 2.7084995213260887,
+            "160": 2.5364221809270964,
+            "320": 2.399982291749008,
+            "400": 2.4018505637893366
+          }
+        },
+        "finite": true
+      }
+    }
+  },
+  "checkpoint_bytes_total": 2294346781
+}
