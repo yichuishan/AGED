@@ -78,3 +78,24 @@ real/fake scenarios and sampling through the production dataset API. Original
 MPS experiment files are preserved unchanged, not claimed as rerun results.
 The wandb adapter was exercised through actual training with a local test
 client; no external wandb account or remote service connection was tested.
+
+## Team-supplied real-data GPU record (earlier code)
+
+The subsequently supplied `integration-checks.zip` records commit `224b948` on
+Windows / RTX 4070 / PyTorch 2.15.0+cu132 with a 210-file real H3.6M export.
+Its 22 pipeline steps succeeded, including 14 automated tests and a CUDA case;
+four separate optimizer diagnostics also completed. This is an external team
+record, not a rerun in the current CPU environment or GPU validation of all
+new options in `51d23d1`.
+
+The saved zero-velocity JSON matches all 60 short-term reference entries within
+the current 0.0055 tolerance (maximum absolute difference about 0.004891), using
+the documented inferred Sitting/160 ms correction; four long-term action rows
+also round to the published values. Adam at LR 0.005 trained poorly, while SGD
+at that LR was markedly more stable in the controlled diagnostic. The SGD full
+model after 2000 steps still slightly exceeded its S11 zero-velocity baseline.
+These are integration/diagnostic results, not a reproduction benchmark.
+
+See the [GPU training guide](GPU_TRAINING_GUIDE.md) for controlled experiments,
+priorities and a short validation procedure. Existing compatibility defaults
+have not silently been changed by this documentation update.

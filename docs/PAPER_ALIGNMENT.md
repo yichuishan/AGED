@@ -92,3 +92,10 @@ claim follows from passing synthetic tests.** The short-term model must be
 trained on 10-frame loss, and the long-term model on 25-frame loss, before
 reporting the corresponding results; rolling a checkpoint farther is only an
 inference capability, not evidence of long-term quality.
+
+A later team-supplied GPU record validates the earlier pipeline and its
+zero-velocity reference on real data, while exposing poor training with Adam
+at LR 0.005. It does not establish the original optimizer or published AGED
+accuracy. See the [validation record](VALIDATION.md#team-supplied-real-data-gpu-record-earlier-code)
+and [prioritized experiment guide](GPU_TRAINING_GUIDE.md). Paper-specified
+settings and optional engineering variants remain distinguished.

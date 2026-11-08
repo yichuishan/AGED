@@ -10,8 +10,12 @@ SO(3) geodesic reconstruction, fidelity and continuity discriminators,
 alternating adversarial training, ablations, resumable checkpoints and S5
 evaluation with a zero-velocity baseline.
 
-**CPU whole-pipeline validation passes. Published Human3.6M accuracy and GPU
-execution have not been validated here.** See
+**Local CPU whole-pipeline validation passes. Team-supplied GPU records confirm
+an earlier pipeline runs on real data, but Adam at LR 0.005 trained poorly.
+The latest optional settings still need GPU validation; published accuracy has
+not been reproduced.** Start with the
+[GPU training and hyperparameter validation guide](docs/GPU_TRAINING_GUIDE.md)
+(priorities, controlled combinations, fastest checks and checkpoint rules). See
 [paper alignment](docs/PAPER_ALIGNMENT.md),
 [source audit](docs/PROVENANCE.md) and [validation scope](docs/VALIDATION.md).
 
@@ -92,6 +96,11 @@ or benchmark result is implied by cloning this repository.
 Short term: 50 observed frames, 10 predicted frames (400 ms). Defaults use all
 six training subjects, hidden size 1024, batch 16, LR 0.005, clip norm 5, 50 epochs,
 lambda 0.6 and both recurrent discriminators.
+
+Existing short/long configs retain **Adam at LR 0.005** for compatibility. The
+team's earlier GPU diagnostic found this combination unstable. Before launching
+50 epochs, follow the [short SGD check](docs/GPU_TRAINING_GUIDE.md#最快验证流程)
+on S11; keeping the command interface compatible does not establish convergence.
 
 ```bash
 python -m aged.train --root data/h36m \
@@ -226,8 +235,11 @@ training statistics, converts rotations to Euler angles, excludes global motion
 and reports mean vector error in radians at 80/160/320/400 ms (plus 560/1000 ms
 when available). Each action row and the overall average include zero-velocity.
 The eight-window sampling and Euler convention follow the protocol documented
-in the team archive; **agreement with published baseline tables still needs
-real-data verification**. Longer rollouts do not establish long-term accuracy.
+in the team archive. The supplied GPU record for the earlier `224b948` version
+matches the documented short-term zero-velocity reference (including its noted
+Sitting/160 ms correction) and four long-term action rows. Repeat the baseline
+check on the current installation and export. Longer rollouts do not establish
+long-term accuracy.
 
 The training/evaluation owner's published zero-velocity regression check is
 available explicitly, without changing the normal evaluation command:
