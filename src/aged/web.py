@@ -31,29 +31,29 @@ ACTIVE = {"running", "stopping"}
 
 # Labels and groups are UI metadata; Config remains the validation authority.
 GROUPS = {
-    "训练与模型": {
-        "variant": "模型变体", "epochs": "总轮数", "steps_per_epoch": "每轮更新数",
-        "batch_size": "批大小", "observed_length": "观测帧数", "prediction_length": "预测帧数",
-        "hidden_dim": "Predictor 隐藏维度", "critic_hidden_dim": "判别器隐藏维度",
-        "condition_decoder": "Decoder 动作条件", "share_recurrent_weights": "共享循环权重",
+    "Training & model": {
+        "variant": "Model variant", "epochs": "Total epochs", "steps_per_epoch": "Updates per epoch",
+        "batch_size": "Batch size", "observed_length": "Observed frames", "prediction_length": "Predicted frames",
+        "hidden_dim": "Predictor hidden size", "critic_hidden_dim": "Critic hidden size",
+        "condition_decoder": "Condition decoder on action", "share_recurrent_weights": "Share recurrent weights",
     },
-    "优化器与损失": {
-        "optimizer": "G 优化器", "learning_rate": "G 学习率", "critic_optimizer": "D 优化器",
-        "critic_learning_rate": "D 学习率", "lambda_adv": "对抗损失权重 λ",
-        "gradient_clip": "梯度裁剪范数", "learning_rate_decay": "学习率衰减系数",
-        "learning_rate_decay_every": "衰减间隔（步）", "adversarial_objective": "生成器对抗目标",
-        "geodesic_reduction": "Geodesic 聚合", "critic_architecture": "判别器结构",
-        "critic_output_layout": "判别器输出形状", "separate_critic_optimizers": "独立判别器优化器",
+    "Optimizers & loss": {
+        "optimizer": "G optimizer", "learning_rate": "G learning rate", "critic_optimizer": "D optimizer",
+        "critic_learning_rate": "D learning rate", "lambda_adv": "Adversarial weight (lambda)",
+        "gradient_clip": "Gradient clip norm", "learning_rate_decay": "Learning-rate decay factor",
+        "learning_rate_decay_every": "Decay interval (updates)", "adversarial_objective": "Generator objective",
+        "geodesic_reduction": "Geodesic reduction", "critic_architecture": "Critic architecture",
+        "critic_output_layout": "Critic output layout", "separate_critic_optimizers": "Separate critic optimizers",
     },
-    "数据与验证": {
-        "actions": "动作类别", "val_subject": "开发验证受试者", "validation_windows": "验证窗口数",
-        "sampling_strategy": "抽样策略", "minimum_start": "最早窗口起点", "seed": "随机种子",
-        "select_on": "最佳模型选择指标", "patience": "早停耐心（0 关闭）",
-        "save_every": "周期存档（轮，0 关闭）",
+    "Data & validation": {
+        "actions": "Action classes", "val_subject": "Validation subject", "validation_windows": "Validation windows",
+        "sampling_strategy": "Sampling strategy", "minimum_start": "Earliest window start", "seed": "Random seed",
+        "select_on": "Checkpoint selection metric", "patience": "Early-stop patience (0: off)",
+        "save_every": "Snapshot interval (epochs, 0: off)",
     },
-    "设备与记录": {
-        "device": "计算设备", "threads": "CPU 线程数", "num_workers": "数据加载进程数",
-        "track": "额外日志后端", "project": "wandb 项目名",
+    "Device & logging": {
+        "device": "Device", "threads": "CPU threads", "num_workers": "DataLoader workers",
+        "track": "Additional tracking backend", "project": "wandb project",
     },
 }
 CHOICES = {
@@ -64,15 +64,15 @@ CHOICES = {
     "select_on": ["angle_error", "val_loss"], "track": ["none", "tensorboard", "wandb"],
 }
 HELP = {
-    "critic_optimizer": "空值跟随 G 优化器", "critic_learning_rate": "留空跟随 G 学习率",
-    "val_subject": "S11 用于开发；空值使用全部六个训练受试者，不生成 best.pt。S5 只用于最终测试。",
-    "save_every": "每轮均覆盖 last.pt；有验证集时更新 best.pt；此项额外保留历史存档。",
-    "learning_rate_decay_every": "运行超过这个更新数，衰减才会生效。",
-    "learning_rate": "旧版 Adam + 0.005 不稳定；P0 预设优先验证 SGD + 0.005。",
-    "adversarial_objective": "minimax 对应论文；non_saturating 是需单独报告的工程变体。",
-    "geodesic_reduction": "sum 对应公式（4）的时间/关节求和；mean 是消融。",
-    "num_workers": "首次联调用 0；Windows 同样在独立 Python 进程中训练。",
-    "device": "可填 cuda、cuda:0、cpu、auto 或 mps；使用当前启动服务的 Python 环境。",
+    "critic_optimizer": "Leave unset to use the G optimizer.", "critic_learning_rate": "Leave blank to use the G learning rate.",
+    "val_subject": "Use S11 for development. Unset uses all six training subjects without best.pt. Reserve S5 for final testing.",
+    "save_every": "last.pt is saved each epoch; validation improvements update best.pt. This option retains extra snapshots.",
+    "learning_rate_decay_every": "Decay starts after this many updates.",
+    "learning_rate": "Earlier Adam + 0.005 runs were unstable. The P0 preset checks SGD + 0.005 first.",
+    "adversarial_objective": "minimax follows the paper; report non_saturating as an engineering variant.",
+    "geodesic_reduction": "sum follows the time/joint sum in Eq. 4; mean is an ablation.",
+    "num_workers": "Start with 0. Training runs in a separate Python process on Windows too.",
+    "device": "Use cuda, cuda:0, cpu, auto or mps in the Python environment running this server.",
 }
 
 
@@ -99,11 +99,11 @@ def profiles():
                 sampling_strategy="recordings", minimum_start=16,
                 adversarial_objective="non_saturating", val_subject="S11", patience=8)
     return {
-        "p0": {"label": "P0 · SGD 快速联调（推荐）", "config": dict(short, optimizer="sgd", epochs=2,
+        "p0": {"label": "P0 · Quick SGD check (recommended)", "config": dict(short, optimizer="sgd", epochs=2,
                 steps_per_epoch=1000, val_subject="S11", save_every=1)},
-        "short": {"label": "兼容默认 · 短期 / Adam", "config": short},
-        "long": {"label": "兼容默认 · 长期 / Adam", "config": dict(short, prediction_length=25)},
-        "team": {"label": "团队组合 · 多项设置同时改变", "config": team},
+        "short": {"label": "Compatibility defaults · Short-term / Adam", "config": short},
+        "long": {"label": "Compatibility defaults · Long-term / Adam", "config": dict(short, prediction_length=25)},
+        "team": {"label": "Team profile · Multiple changes", "config": team},
     }
 
 
@@ -120,7 +120,7 @@ class JobManager:
 
     def path(self, value):
         if not isinstance(value, str) or not value.strip():
-            raise ValueError("路径不能为空")
+            raise ValueError("Path must not be empty")
         path = Path(value).expanduser()
         return (path if path.is_absolute() else self.base / path).resolve()
 
@@ -128,21 +128,21 @@ class JobManager:
         """Read-only preflight; failed requests do not create run directories."""
         mode = payload.get("mode", "new")
         if mode not in ("new", "resume", "warm"):
-            raise ValueError("未知训练模式")
+            raise ValueError("Unknown training mode")
         config = Config(**payload["config"])
         root, out = self.path(payload["root"]), self.path(payload["out"])
         if not root.is_dir():
-            raise ValueError(f"数据集目录不存在：{root}")
+            raise ValueError(f"Dataset directory does not exist: {root}")
         if out == root or root.is_relative_to(out) or out.is_relative_to(root):
-            raise ValueError("输出目录与数据集目录应分开，避免把运行文件写入数据集")
+            raise ValueError("Keep output and dataset directories separate to avoid writing run files into the dataset")
         if out.exists() and not out.is_dir():
-            raise ValueError(f"输出路径不是目录：{out}")
+            raise ValueError(f"Output path is not a directory: {out}")
         if mode != "resume" and out.exists() and any(out.iterdir()):
-            raise ValueError("输出目录非空：请选择新目录，或选择断点续训")
+            raise ValueError("Output directory is not empty. Choose a new directory or select resume mode")
         if config.device.startswith("cuda") and not torch.cuda.is_available():
-            raise ValueError("当前 Python 的 PyTorch 无可用 CUDA；请检查 GPU 环境或选择 CPU")
+            raise ValueError("CUDA is unavailable in this Python environment. Check the GPU setup or select CPU")
         if config.device == "mps" and not torch.backends.mps.is_available():
-            raise ValueError("当前环境无可用 MPS")
+            raise ValueError("MPS is unavailable in this environment")
         torch.device(config.device if config.device != "auto" else "cpu")
         saved = None
         checkpoint = None
@@ -150,18 +150,18 @@ class JobManager:
             checkpoint = self.path(payload.get("checkpoint", ""))
             saved = load_checkpoint(checkpoint)
             if config.epochs <= saved["epoch"]:
-                raise ValueError(f"总轮数必须大于检查点轮数 {saved['epoch']}")
+                raise ValueError(f"Total epochs must exceed checkpoint epoch {saved['epoch']}")
             if mode == "resume":
                 for key, value in config.to_dict().items():
                     if key not in RESUME_MUTABLE and value != saved["config"][key]:
-                        raise ValueError(f"续训不能修改 {key}，请先载入检查点配置")
+                        raise ValueError(f"Resume cannot change {key}. Load the checkpoint configuration first")
             elif config.optimizer != saved["config"]["optimizer"]:
-                raise ValueError("预热启动必须保留原 G 优化器类型")
+                raise ValueError("Warm start must retain the source G optimizer type")
         required = [root / subject / f"{action}_{take}.txt"
                     for subject in TRAIN_SUBJECTS for action in config.actions for take in (1, 2)]
         missing = [str(path.relative_to(root)) for path in required if not path.is_file()]
         if missing:
-            raise ValueError(f"缺少 {len(missing)}/{len(required)} 个训练/验证文件，例如：" + ", ".join(missing[:6]))
+            raise ValueError(f"Missing {len(missing)}/{len(required)} training/validation files, for example: " + ", ".join(missing[:6]))
         return {"config": config.to_dict(), "root": str(root), "out": str(out),
                 "resume": str(checkpoint) if mode == "resume" else None,
                 "init_from": str(checkpoint) if mode == "warm" else None,
@@ -171,7 +171,7 @@ class JobManager:
         prepared = self.prepare(payload)
         with self.lock:
             if any(job["status"] in ACTIVE for job in self.jobs.values()):
-                raise RuntimeError("已有训练运行中，请等待结束或停止后再启动")
+                raise RuntimeError("A training job is already active. Wait for it to finish or stop it first")
             ident = uuid.uuid4().hex[:12]
             folder = self.state_dir / ident
             folder.mkdir(parents=True)
@@ -249,7 +249,7 @@ class JobManager:
         finally:
             with self.lock:
                 if job["status"] in ACTIVE:
-                    job.update(status="failed", error="训练进程输出读取失败，请检查 console.log")
+                    job.update(status="failed", error="Could not read training output. Check console.log")
                 job["finished"] = timestamp()
                 self._persist(job)
             job["process"].stdout.close()
@@ -271,7 +271,7 @@ class JobManager:
         with self.lock:
             job = self.jobs[ident]
             if job["status"] not in ACTIVE:
-                raise ValueError("该任务已结束")
+                raise ValueError("This job has already ended")
             if force:
                 job["forced"] = True
                 self._terminate(job["process"])
@@ -354,14 +354,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         port = self.server.server_port
         allowed = {f"127.0.0.1:{port}", f"localhost:{port}"}
         if self.headers.get("Host") not in allowed:
-            self._send(403, {"error": "只接受本机 localhost 请求"})
+            self._send(403, {"error": "Only local localhost requests are accepted"})
             return False
         origin = self.headers.get("Origin")
         if origin and origin not in {"http://" + host for host in allowed}:
-            self._send(403, {"error": "拒绝跨站请求"})
+            self._send(403, {"error": "Cross-origin requests are not allowed"})
             return False
         if write and not secrets.compare_digest(self.headers.get("X-AGED-Token", ""), self.server.token):
-            self._send(403, {"error": "请刷新本地页面后重试"})
+            self._send(403, {"error": "Refresh the local page and try again"})
             return False
         return True
 
@@ -392,7 +392,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 elif len(parts) == 3:
                     self._send(200, manager.snapshot(ident, int(query.get("after", ["0"])[0])))
                 else:
-                    self._send(404, {"error": "未知接口"})
+                    self._send(404, {"error": "Unknown endpoint"})
             elif route.path == "/api/browse":
                 directory = manager.path(query.get("path", [str(manager.base)])[0])
                 if not directory.is_dir():
@@ -413,7 +413,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     content_type = {"index.html": "text/html", "app.js": "text/javascript", "style.css": "text/css"}[asset]
                     self._send(200, files("aged").joinpath("web_assets").joinpath(asset).read_bytes(), content_type + "; charset=utf-8")
                 else:
-                    self._send(404, {"error": "页面不存在"})
+                    self._send(404, {"error": "Page not found"})
         except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
             self._send(400, {"error": str(error)})
 
@@ -423,10 +423,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if not 0 < length <= 1024 * 1024:
-                raise ValueError("请求大小无效")
+                raise ValueError("Invalid request size")
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
-                raise ValueError("请求必须是 JSON 对象")
+                raise ValueError("Request must be a JSON object")
             manager = self.server.manager
             if self.path == "/api/validate":
                 prepared = manager.prepare(payload)
@@ -440,7 +440,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/jobs/") and self.path.endswith("/stop"):
                 self._send(200, manager.stop(self.path.split("/")[3], payload.get("force") is True))
             else:
-                self._send(404, {"error": "未知接口"})
+                self._send(404, {"error": "Unknown endpoint"})
         except RuntimeError as error:
             self._send(409, {"error": str(error)})
         except (OSError, ValueError, KeyError, TypeError, EOFError, pickle.UnpicklingError, IndexError) as error:

@@ -1,91 +1,91 @@
-# 本地可视化训练界面
+# Local training dashboard
 
-网页运行在训练电脑上，使用当前 Python 环境和现有 AGED 训练器。没有额外的 Web 框架、Node 构建步骤或外部 CDN 依赖；命令行接口和整合版 v1 检查点保持兼容。
+The dashboard runs on the training computer, using its current Python environment and the existing AGED trainer. No extra Web framework, Node build or external CDN is required. CLI interfaces and integration v1 checkpoints remain compatible.
 
-![本地训练界面](media/training-ui.png)
+![Local training dashboard](media/training-ui.png)
 
-界面示例来自本地 Chromium 中的真实合成数据 CPU 短跑，隐藏维度和更新数为测试用小值，图中误差不代表 Human3.6M 或论文结果。
+The screenshot shows a real synthetic-data CPU run in local Chromium with small test settings. Its error values are not Human3.6M or paper results.
 
-## 启动
+## Start the dashboard
 
-在已有 GPU 环境中激活原来的虚拟环境，进入仓库根目录：
+Activate the existing training environment and enter the repository root:
 
 ```bash
 python -m aged.web --open
 ```
 
-浏览器打开 `http://127.0.0.1:8765`。`--open` 可省略；端口冲突时改为 `python -m aged.web --port 8766`。Windows、Linux 使用相同命令，无需重装 GPU PyTorch。按 README 进行过 editable 安装时，更新源代码后即可运行此模块。更新安装后也可使用 `aged-web` 命令。
+Open `http://127.0.0.1:8765`. Omit `--open` to open the browser manually; use `python -m aged.web --port 8766` if the port is occupied. Windows and Linux use the same command. No GPU PyTorch reinstall is needed. With the README's editable installation, updating source is enough to run this module. Updating the installation also registers the `aged-web` command.
 
-服务仅监听本机 `127.0.0.1`；不提供公共网络登录或远程部署功能。数据路径是**服务所在电脑的文件系统路径**，不是把数据上传到网页。例如：
+The server listens only on `127.0.0.1`; it has no public-network login or remote deployment mode. Dataset paths refer to the **computer running the server**, rather than an upload into the browser:
 
-- Windows：`D:/datasets/h36m`，输出 `D:/experiments/aged-p0-A`。
-- Linux：`/mnt/data/h36m`，输出 `/mnt/experiments/aged-p0-A`。
-- 相对路径以启动服务时的工作目录为基准，页面底部会显示该目录。
+- Windows: dataset `D:/datasets/h36m`, output `D:/experiments/aged-p0-A`.
+- Linux: dataset `/mnt/data/h36m`, output `/mnt/experiments/aged-p0-A`.
+- Relative paths resolve from the server's launch directory, shown in the page footer.
 
-目录浏览器支持本机目录和 Windows 盘符；检查点浏览器可选择 `.pt` / `.pth`。输出目录和数据集应分开；新实验的输出目录必须为空或尚不存在。
+The directory browser supports local folders and Windows drives. The checkpoint browser accepts `.pt` / `.pth`. Keep output separate from data; a new run needs an empty or nonexistent output directory.
 
-## 配置与启动训练
+## Configure and start training
 
-1. 选择运行方式。首次使用选“新建训练”。
-2. 默认预设是 **P0 · SGD 快速联调**：SGD、LR 0.005、S11 验证、2×1000 次更新、每轮存档。短期/长期兼容预设保留 Adam 默认；团队组合同时改变多项设置。预设不是已经达到论文指标的证明。
-3. 输入数据集根目录与新的输出目录。数据格式仍为 `S1/walking_1.txt` 等 99 列、50 Hz exponential-map TXT；不直接读取 BVH/CDF。
-4. 展开四组参数，设置所有 Config 字段，包括模型、G/D 优化器和学习率、抽样、动作类别、验证、存档、设备和日志。D 优化器/学习率留空时跟随 G。
-5. 点击“检查路径与参数”。它验证配置、设备、目录以及需要的训练/验证文件是否存在；完整文件内容与归一化在训练进程中检查。启动训练不需要 S5，最终评估才需要它。
-6. 点击“开始训练”。每个服务同时只运行一个训练任务，避免无意竞争 GPU。训练在独立子进程中运行，界面保留响应。
+1. Choose a run mode. Use **New training run** initially.
+2. The default **P0 · Quick SGD check** uses SGD, LR 0.005, S11 validation, 2x1000 updates and a snapshot each epoch. Compatibility short/long presets retain Adam. The team profile changes several settings at once. A preset does not establish reproduction accuracy.
+3. Enter the dataset root and a new output directory. The contract remains 99-column, 50 Hz exponential-map TXT such as `S1/walking_1.txt`. BVH/CDF are not read directly.
+4. Expand the four parameter groups to edit every Config field: model, G/D optimizers/rates, sampling, actions, validation, snapshots, device and logging. An unset D optimizer/rate follows G.
+5. Click **Validate paths & config** to check configuration, device, directories and required training/validation file presence. Contents and normalization are checked in the training process. Training does not need S5; final evaluation does.
+6. Click **Start training**. Each server allows one training job at a time. Training runs in an isolated subprocess so the dashboard stays responsive.
 
-页面可导出完整 `config.json`，也会显示等价 CLI 命令。导出的 JSON 可作为原 CLI 的 `--config` 输入，另行传入 `--root` 和 `--out`。
+Export the complete `config.json` or inspect the equivalent CLI command. The exported JSON works as CLI `--config`, with separate `--root` and `--out` arguments.
 
-设备字段支持 `cuda`、`cuda:0`、`cpu`、`auto`、`mps`。页面会检测启动服务的 Python 是否有 CUDA；无 CUDA 时初始选择 CPU，并说明当前环境。检测到的是当前 Python 的能力，不是另一套 conda/venv 环境。
+Device accepts `cuda`, `cuda:0`, `cpu`, `auto` or `mps`. Detection uses the Python running the server. Without CUDA the initial selection is CPU; another conda/venv environment's capabilities do not apply.
 
-TensorBoard / wandb 仍是原有可选依赖。网页曲线与日志不需要安装它们，`track=none` 即可。
+TensorBoard and wandb remain optional. Dashboard charts and logs work with `track=none` and do not require either package.
 
-## 观察日志、曲线与报错
+## Logs, curves and errors
 
-- 每约 0.5 秒发送一次真实 batch 指标，网页约每秒刷新。读取数据、归一化和模型初始化期间尚无 batch 曲线，先看日志。
-- 左图为最近最多 600 个采样点的即时 reconstruction / generator total；不是每个 batch 都绘点。完整进度事件保留在原始控制台日志中。
-- 右图为已完成 epoch 的验证误差，按 80/160/320/400 ms 等时域分线。未设置验证集时显示说明；验证还没完成时不会出现虚构曲线。
-- 顶部重建损失在运行中显示最近 batch 值，结束后显示最后一轮平均值。G 梯度范数是裁剪前的值。
-- 标准输出与标准错误合并显示，失败时突出末尾异常，保留完整 Python traceback。页面“仅错误”过滤用于定位错误行，完整上下文在全部日志中。
-- 页面最多保留最近 3000 行普通日志；“下载日志”包含完整 stdout/stderr 与进度事件。
-- 训练状态分别为运行中、正在停止、完成、已保存停止、失败或立即终止；不会把非零退出码标为成功。
+- Real batch metrics are emitted about every 0.5 seconds; the browser polls about once per second. During loading, normalization and model initialization, watch the log until the first update arrives.
+- The left chart shows up to 600 recent sampled reconstruction/generator-total points, rather than every batch. The raw console log retains complete emitted progress events.
+- The right chart shows validation error by completed epoch and reported horizon, such as 80/160/320/400 ms. It shows an explanation when validation is disabled or incomplete.
+- The reconstruction card shows the latest batch while running and the last epoch average after completion. G gradient norms are measured before clipping.
+- stdout/stderr are combined. Failures highlight recent exceptions and retain the full Python traceback. **Errors only** locates error lines; disable it for full context.
+- The page keeps up to 3000 recent ordinary log lines. **Download log** includes full stdout/stderr and structured progress events.
+- States distinguish training, stopping, completed, saved-and-stopped, failed and terminated. A nonzero worker exit is not reported as success.
 
-模型变体的损失单位不同，不要直接比较 MSE 和 geodesic 求和的绝对数值。有限损失、约 50% 的判别器准确率或没有报错都不能单独证明模型有效。开发集对照与优先级见 [GPU 训练指南](GPU_TRAINING_GUIDE.md)。
+MSE and geodesic-sum magnitudes are not directly comparable. Finite losses, approximately 50% critic accuracy or absence of exceptions do not alone establish learning quality. See the [GPU training guide](GPU_TRAINING_GUIDE.md) for development comparisons and priorities.
 
-## 检查点与停止
+## Checkpoints and stopping
 
-- `last.pt`：每轮结束覆盖保存。
-- `best.pt`：启用验证集后，在选择指标改善时更新。
-- `save_every=N`：额外保留 `epoch_005.pt` 等历史存档；0 关闭。
-- “本轮保存后停止”：当前轮继续，完成验证和检查点保存后退出。**不会立即中断到一半，也不会新增半轮检查点格式**，因此可以按原方式继续训练。
-- “立即终止”：经页面确认后终止进程，未保存的本轮更新丢失；之前已完成的检查点保留。
+- `last.pt`: overwritten after each completed epoch.
+- `best.pt`: updated on validation improvements when validation is enabled.
+- `save_every=N`: additionally retains historical `epoch_005.pt`-style snapshots; 0 disables them.
+- **Stop after epoch**: finishes this epoch, validation and checkpoint saving before exiting. No partial-epoch checkpoint format is introduced, so normal resume remains valid.
+- **Terminate now**: after browser confirmation, terminates the worker and discards unsaved updates in this epoch. Earlier completed checkpoints remain.
 
-关闭或刷新浏览器标签不停止训练；重新打开同一服务可看到本次会话的任务。按服务器终端的 Ctrl+C 会退出服务并终止仍在运行的训练，使用之前已完成的检查点恢复。建议先请求本轮保存后停止，再退出服务器。`num_workers=0` 是首次联调的推荐值。
+Closing or refreshing the browser does not stop training; reopening the same server restores this session's job view. Ctrl+C in the server terminal exits the server and terminates active training. Resume from an already completed checkpoint. Prefer stopping after an epoch before exiting the server. Use `num_workers=0` for initial checks.
 
-## 续训与预热启动
+## Resume and warm start
 
-选择“断点续训”，填入 `last.pt`，点击“载入检查点配置”。原训练设置会锁定，可调整总轮数（必须大于检查点轮数）、设备、线程/worker、记录后端、project、patience 和存档频率。确认同一份数据及输出目录后启动；历史验证曲线会载入，模型、优化器、步数和 RNG 按原训练器恢复。
+Select **Resume**, enter `last.pt`, then click **Load checkpoint config**. Training settings lock; total epochs must exceed the saved epoch. Device, threads/workers, tracking backend, project, patience and snapshot interval remain editable. Confirm the same dataset and output directory before starting. Saved validation history is loaded, and the existing trainer restores models, optimizers, update count and RNG.
 
-选择“预热启动”可载入源配置后修改适用选项，并使用**新的空输出目录**。它保留 G 和 G 优化器、重建 D；必须匹配 G 优化器类型、特征与归一化。它不支持将 Adam 优化器状态转换成 SGD。改变划分或输入维度也不是直接续训操作。
+**Warm start** loads a source configuration and permits applicable changes in a **new empty output directory**. It retains G and its optimizer and initializes fresh critics. G optimizer type, features and normalization must match. It does not convert Adam optimizer state to SGD or directly change data splits/input dimensions during resume.
 
-网页服务器重启后不会重新连接旧进程，也不会自动加载上次会话列表。已保存文件仍在本机，使用上述检查点路径恢复。并行开多个独立网页服务器会绕过单服务的任务互斥，首次使用保留一个服务器即可。
+Restarting the server does not reconnect old processes or automatically reload earlier session lists. Saved files remain available for checkpoint-based resume. Multiple independent servers bypass the single-server job limit; start with one server.
 
-## 文件在哪里
+## Saved files
 
-指定的实验输出目录保留原来的 `config.json`、`normalisation.json`、`commands.txt`、`results.json` 与检查点。
+The selected experiment directory retains the existing `config.json`, `normalisation.json`, `commands.txt`, `results.json` and checkpoints.
 
-另在 `experiments/web-ui/<任务ID>/` 保存：
+Additional job records live in `experiments/web-ui/<job-id>/`:
 
-| 文件 | 内容 |
+| File | Contents |
 | --- | --- |
-| `request.json` / `config.json` | 路径、启动模式、完整参数和可回放的命令参数 |
-| `console.log` | 持久化标准输出、异常与结构化进度事件 |
-| `session.json` | 状态、时间、退出码、输出路径及异常摘要 |
-| `stop` | 请求在本轮保存后停止的标记，仅属于该任务 |
+| `request.json` / `config.json` | Paths, mode, full settings and replayable command arguments |
+| `console.log` | Persistent stdout, exceptions and structured progress events |
+| `session.json` | Status, timestamps, exit code, output path and error summary |
+| `stop` | This job's request to stop after saving an epoch |
 
-这些运行产物均位于 Git 忽略的 experiments 下。可用 `--state-dir` 修改网页记录目录。不要删除仍在运行任务的目录；恢复模型只需要原实验的检查点和对应数据，网页不引入新的检查点转换步骤。
+These artifacts live under Git-ignored experiments. `--state-dir` changes the dashboard record directory. Keep active job directories intact. Model recovery uses the existing checkpoint and corresponding dataset, with no new checkpoint conversion.
 
-## 验证范围
+## Validation scope
 
-集成测试通过真实 HTTP 请求启动生产训练子进程，检查保存停止、续训、与普通 CLI 的模型参数一致性、路径检查、并发拒绝、错误堆栈、日志下载和进程终止。浏览器检查使用本地 Chromium 操作真实表单与训练流程。
+System tests use actual HTTP requests to launch production training subprocesses and check saved-epoch stopping, resume, CPU parameter equality with normal CLI training, path checks, task exclusion, tracebacks, log downloads and termination. Local Chromium tests operate the real form and training workflow.
 
-当前开发环境没有 CUDA 与真实 Human3.6M，使用小型合成导出验证界面和进程流程。真实 GPU 训练质量、GPU 驱动和 Windows 原生交互仍需在训练电脑验证；网页不会把这些工程检查声明成论文复现结果。
+The development machine lacks CUDA and real Human3.6M recordings. Synthetic CPU exports validate interface/process behavior. Real GPU learning quality, drivers and native Windows interaction still need checks on the training computer; these engineering checks do not establish paper reproduction.

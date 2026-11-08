@@ -1,68 +1,68 @@
-# GPU 训练：超参数、实验优先级与最快验证方法
+# GPU training: hyperparameters, experiment priorities and quick validation
 
-适用于整合提交 `51d23d1` 及保留相同接口的后续版本。在仓库根目录、现有 GPU Python 环境中执行命令，无需为本指南重新安装 PyTorch。训练接口、short/long YAML 和旧版整合 v1 检查点保持兼容；默认设置也保持原样，**更新代码不会自动将 Adam 换成 SGD**。
+Applies to integration commit `51d23d1` and later versions with the same interfaces. Run commands from the repository root in your existing GPU Python environment. No PyTorch reinstall is required. Training interfaces, short/long YAML files and integration v1 checkpoints remain compatible. Defaults also stay unchanged: **updating the code does not automatically switch Adam to SGD**.
 
-## 依据与当前结论
+## Evidence and current findings
 
-组员提供的 `integration-checks.zip` 记录了旧提交 `224b948` 在 RTX 4070、真实 Human3.6M 文本导出上的实验。22 个流程检查成功，其中自动测试为 14 项；这与最新版 CPU 环境的 22 项自动测试通过不是同一计数。
+The team-supplied `integration-checks.zip` records commit `224b948` on an RTX 4070 with a real Human3.6M text export. All 22 pipeline checks succeeded, including 14 automated tests. This is a different count from the 22 passing automated CPU tests at the initial reconciliation stage.
 
-- 训练、续训、验证、TensorBoard 和 S5 评估流程已在旧版 GPU 环境跑通。
-- 短期零速度表及四类动作的长期基线吻合参考值。短期表对 sitting/160 ms 使用注明的推定勘误 0.63。
-- 相同学习率 0.005 下，Adam 训练明显恶化，SGD 稳定得多。2000 步时，S11 平均误差：plain/Adam 10.155、plain/SGD 0.808、full/Adam 10.472、full/SGD 0.718；相同 S11 窗口的零速度为 0.704。
-- 这支持优先验证优化器与学习率组合；不能证明作者使用了 SGD，也不能宣称当前 SGD 已复现论文。
-- 旧记录没有第 0 步模型评估，不能据此断言训练结果比随机初始化还差。
+- Training, resume, validation, TensorBoard and S5 evaluation ran successfully on the earlier GPU version.
+- Short-term zero-velocity values and four long-term action rows match the reference. The short-term table uses the documented inferred correction of 0.63 for sitting at 160 ms.
+- At LR 0.005, Adam training deteriorated while SGD was much more stable. After 2000 updates, mean S11 errors were plain/Adam 10.155, plain/SGD 0.808, full/Adam 10.472 and full/SGD 0.718. Zero velocity on the same S11 windows scored 0.704.
+- This supports checking the optimizer/LR combination first. It does not establish the original authors' optimizer or successful reproduction with SGD.
+- The earlier record contains no step-0 evaluation, so it cannot show whether training performed worse than random initialization.
 
-原始报告、日志、配置、结果和数据指纹已原样归档到 [integration-checks/224b948](integration-checks/README.md)，保留原目录层级。原始上传 ZIP 仍在工作区，仓库保存解压内容，避免重复存储；归档不包含数据集或模型权重。本地 CPU 检查不构成重新执行这份 GPU 实验的证明。
+Original reports, logs, configurations, results and the data fingerprint are archived unchanged under [integration-checks/224b948](integration-checks/README.md). The uploaded ZIP remains in the workspace; the repository stores its extracted contents without a duplicate ZIP. No dataset or model weights are included. Local CPU checks do not constitute a rerun of those GPU experiments.
 
-## 哪些值固定，哪些需要验证
+## Fixed settings and choices to validate
 
-先固定数据、种子和训练预算，再逐项改变缺失的实现细节。所有候选在 S11 上选择，S5 留作最终报告。
+Fix data, seeds and update budgets before changing unspecified implementation details. Select candidates on S11 and reserve S5 for final reporting.
 
-| 参数 | 当前值 | 论文依据 / 验证原则 |
+| Parameter | Current value | Paper evidence / validation policy |
 | --- | --- | --- |
-| predictor 隐藏维度、batch、梯度裁剪 | 1024、16、5 | 论文明确；首轮保持不变。critic hidden 1024 也先固定，后者属于实现选择 |
-| 学习率、λ、正式轮数 | 0.005、0.6、50 | 论文明确；优先用 0.005 验证 SGD。更小 Adam LR 属单独候选 |
-| 观测 / 预测长度 | 50 / 10；长期 50 / 25 | 论文明确；先验证短期，再训练独立长期模型 |
-| geodesic loss | 对时间、关节求和，batch 平均 | 公式（4）没有平方。不要为了降低数值改成平方或 mean |
-| 对抗目标 | `minimax` | 论文目标；`non_saturating` 是需单独标注的工程变体 |
-| `optimizer` | `adam` | 原文未命名；**P0：首先试 `sgd`** |
-| `learning_rate_decay` / `every` | 1.0 / 10000 | 原文未给；稳定后试 0.95 / 10000 |
-| `critic_optimizer` / `critic_learning_rate` | 跟随 G | 可分别设置；先保持跟随，失衡时单独调 D |
-| critic 结构 / 优化器 | `projected` / 联合 | 对照团队 `direct` / 独立优化器，每次只改一项 |
-| 抽样 / 最早起点 | `windows` / 0 | 原文未完整确定；可分别试 `recordings`、16 |
-| `steps_per_epoch` | 2000 | 工程选择；比较总更新数，不只比较 epoch 数 |
-| S11 / 验证窗口 | 可选 / 256，固定 seed 999 | 开发阶段启用；不参与训练或统计量拟合 |
+| Predictor hidden size, batch size, gradient clip | 1024, 16, 5 | Explicit paper settings; retain initially. Also fix critic hidden size at 1024, which is an implementation choice |
+| Learning rate, lambda, formal epochs | 0.005, 0.6, 50 | Explicit paper settings; test SGD at 0.005 first. A lower Adam LR is a separate candidate |
+| Observed / predicted frames | 50 / 10; long-term 50 / 25 | Explicit paper settings; validate short-term first, then train a separate long-term model |
+| Geodesic loss | Sum over time/joints, mean over batch | Eq. 4 does not square the distance. Do not replace it with a square or mean merely to reduce its magnitude |
+| Adversarial objective | `minimax` | Paper objective; report `non_saturating` separately as an engineering variant |
+| `optimizer` | `adam` | Not named in the paper; **P0: test `sgd` first** |
+| `learning_rate_decay` / `every` | 1.0 / 10000 | Unspecified; try 0.95 / 10000 after establishing stability |
+| `critic_optimizer` / `critic_learning_rate` | Follow G | Independently configurable; retain initially, adjust D if training is imbalanced |
+| Critic architecture / optimizers | `projected` / joint | Compare team `direct` / separate optimizers one change at a time |
+| Sampling / earliest start | `windows` / 0 | Not fully specified; separately test `recordings` and 16 |
+| `steps_per_epoch` | 2000 | Engineering choice; compare total updates, not epoch count alone |
+| S11 / validation windows | Optional / 256, fixed seed 999 | Enable during development; exclude S11 from training and normalization fitting |
 
-学习率会同时影响 G 和 D，除非显式指定 `--critic-learning-rate`。若改用 Adam，建议先试 0.0005，必要时再试 0.0001；这些是待验证候选，不是论文给出的值。
+The learning rate applies to both G and D unless `--critic-learning-rate` is set. An Adam candidate can start at 0.0005, then try 0.0001 if needed. These are proposed experiments, not paper-specified values.
 
-## 实验优先级与组合
+## Experiment priorities and combinations
 
-除表中显式修改项外，以下短跑都固定：all 15 actions、hidden 1024、batch 16、clip 5、λ 0.6、seed 0、S11 验证、minimax、geodesic sum、无衰减。诊断预算为 **2 epochs × 1000 steps = 2000 次更新**，每 1000 步得到一次验证和存档。
+Except for explicit changes below, fix all 15 actions, hidden size 1024, batch 16, clip 5, lambda 0.6, seed 0, S11 validation, minimax, geodesic sum and no LR decay. The diagnostic budget is **2 epochs x 1000 steps = 2000 updates**, with validation and a snapshot every 1000 updates.
 
-| 优先级 / 编号 | 组合 | 相对比较对象只改什么 | 何时执行 |
+| Priority / ID | Combination | Change relative to its reference | When to run |
 | --- | --- | --- | --- |
-| P0 / A | full + SGD，LR 0.005 | 相对旧默认只换优化器 | 最先跑，检查主模型稳定性 |
-| P0 / B | plain + SGD，LR 0.005 | 相对 A 去掉判别器，改为 MSE | 验证普通 predictor 能否学习；它是基准，不是单因素损失消融 |
-| P1 / C | geodesic + SGD | 相对 A 只去掉两个判别器 | A 不稳定或需判断对抗训练是否拖累时 |
-| P1 / D | full + Adam，LR 0.0005 | 相对旧 Adam 0.005 降低 LR | SGD 不理想或需要优化器对照时；不必重跑已知差的 Adam 0.005 |
-| P1 / E | A + critic LR 0.001 | 只降低 D 的 LR，G 保持 0.005 | 判别器接近满分且 G 验证不改善时 |
-| P2 / F | A + `critic_architecture=direct` | 只改 critic 结构 | 稳定基准建立后，验证成员实现 |
-| P2 / G | A + 独立 critic 优化器 | 只加 `separate_critic_optimizers` | 同上；这也改变各 critic 的裁剪方式 |
-| P2 / H | A + `sampling_strategy=recordings` | 只改记录抽样分布 | 同上；之后再单独试 `minimum_start=16` |
-| P2 / I | 稳定候选 + 0.95/10000 衰减 | 只改 schedule | 必须训练超过 10000 步才有衰减对照意义 |
-| P3 / J | A + `non_saturating` | 只改生成器对抗目标 | 稳定性扩展；单独标明偏离论文 minimax |
+| P0 / A | full + SGD, LR 0.005 | Change the optimizer from compatibility defaults | First check of the full model's stability |
+| P0 / B | plain + SGD, LR 0.005 | Remove critics and use MSE relative to A | Check basic predictor learning; this is a reference, not a single-factor loss ablation |
+| P1 / C | geodesic + SGD | Remove both critics relative to A | If A is unstable or to isolate the adversarial contribution |
+| P1 / D | full + Adam, LR 0.0005 | Reduce LR from the earlier Adam 0.005 run | If SGD is unsatisfactory or an optimizer comparison is needed; no need to repeat known-poor Adam 0.005 |
+| P1 / E | A + critic LR 0.001 | Reduce only D LR; keep G at 0.005 | If critics approach perfect accuracy while G validation stalls |
+| P2 / F | A + `critic_architecture=direct` | Change only the critic architecture | After establishing a stable reference |
+| P2 / G | A + separate critic optimizers | Add only `separate_critic_optimizers` | Same stage; this also changes per-critic clipping |
+| P2 / H | A + `sampling_strategy=recordings` | Change only the recording distribution | Then separately test `minimum_start=16` |
+| P2 / I | Stable candidate + decay 0.95/10000 | Change only the schedule | Run beyond 10000 updates to observe decay |
+| P3 / J | A + `non_saturating` | Change only the generator objective | Stability extension; report the departure from paper minimax |
 
-不要全排列。先完成 A，必要时 B、C；根据诊断选择后续项。表中 F/G/H/J 各自与 A 比较，不能把前一行的额外开关累积到下一行。`column` 只是 critic 输出形状选项，本轮没有必要作为效果搜索项。
+Avoid a full grid search. Start with A, then B/C as needed, and select later experiments based on the observed issue. F/G/H/J each compare with A; do not accumulate changes from preceding rows. `column` only changes the critic output layout and need not be an accuracy-search variable here.
 
-D/E 的额外学习率设置和 J 的目标函数属于工程对照，不能直接标为采用论文全部原始超参数的结果。原文未规定的 schedule、结构细节和抽样选择也要随实验报告。
+The extra LR settings in D/E and the objective in J are engineering comparisons, not runs using every explicit paper hyperparameter. Report choices for unspecified schedules, architecture details and sampling too.
 
-`configs/team-reference.yaml` 同时改变 critic、优化器分组、抽样、schedule、对抗目标和早停。先完成单项验证，再把它作为明确标注的团队组合实验；它不是完整确定的“论文原始配置”。
+`configs/team-reference.yaml` simultaneously changes critics, optimizer grouping, sampling, schedule, objective and early stopping. Test individual changes first, then evaluate it as a labeled team combination. It is not a fully determined original-paper configuration.
 
-## 最快验证流程
+## Fastest validation workflow
 
-以下命令为单行，可用于 Bash、Git Bash 或 PowerShell。保持数据根目录相同，每次使用新的 `--out`；已有有效 CUDA 环境无需运行安装脚本。
+The single-line commands below work in Bash, Git Bash or PowerShell. Use the same dataset root and a new `--out` per run. An existing working CUDA environment needs no installer rerun.
 
-### 第一步：环境、版本与基线
+### Step 1: environment, version and baseline
 
 ```bash
 git rev-parse HEAD
@@ -71,56 +71,56 @@ python -m pytest -q
 python -m aged.evaluate --root data/h36m --baseline --check-baseline --output experiments/current-baseline.json
 ```
 
-这是部署和评估检查；还不能证明学习效果。基线命令主要是 CPU 计算。若这个安装和数据已经通过，不必在每个候选前重复。测试套件包含需要可用 CUDA 的条件测试；实际执行数和跳过原因以日志为准。
+These check deployment and evaluation, not learning quality. Baseline evaluation is primarily CPU computation. Once this installation and export pass, do not repeat the checks before every candidate. Conditional CUDA tests require usable CUDA; consult actual counts and skip reasons in the log.
 
-基线检查要求所选动作的 80/160/320/400 ms 数值齐全；过短的 horizon 缺少时域时不会通过。
+The baseline gate requires all 80/160/320/400-ms entries for the selected actions. A horizon too short to provide them cannot pass.
 
-### 第二步：只跑 A，约 2000 次更新
+### Step 2: run A only, for about 2000 updates
 
 ```bash
 python -m aged.train --root data/h36m --config configs/short-term.yaml --variant full --optimizer sgd --val-subject S11 --epochs 2 --steps-per-epoch 1000 --save-every 1 --seed 0 --device cuda --out experiments/p0-A-full-sgd
 ```
 
-历史 RTX 4070 的 full 短期训练约 40–45 ms/步，2000 步纯训练约 80–90 秒；还需加上读数据、验证和保存时间。此估计来自旧版，不能保证当前硬件或新增组合的耗时。预算最紧时，先完成这一项；只跑几十或 200 步可排查报错，不能判断收敛。
+Earlier RTX 4070 short-term full runs took about 40-45 ms/update, or 80-90 seconds of training for 2000 updates, plus loading, validation and saving. This is an estimate from older code, not a performance guarantee for other hardware or new combinations. With a tight budget, run A first. Tens or 200 updates can expose runtime errors but are insufficient to assess convergence.
 
-2×1000 是诊断预算，不是论文正式 epoch 定义；改变每轮步数也会改变 epoch 相关的抽样序列。不要要求它与旧脚本 1×2000 的逐步数值完全一致。新候选统一用 2×1000，保证彼此公平。
+2x1000 is a diagnostic budget, not the paper's epoch definition. Changing steps per epoch also changes epoch-dependent sampling, so do not expect exact pointwise equality with the earlier 1x2000 diagnostic. Use 2x1000 consistently for new candidates.
 
-### 第三步：需要 predictor 基准时跑 B
+### Step 3: run B when a predictor reference is needed
 
 ```bash
 python -m aged.train --root data/h36m --config configs/short-term.yaml --variant plain --optimizer sgd --val-subject S11 --epochs 2 --steps-per-epoch 1000 --save-every 1 --seed 0 --device cuda --out experiments/p0-B-plain-sgd
 ```
 
-从 `results.json` 比较两轮的 `validation_angle_error`、`reconstruction` 和梯度；不要把 plain 的 MSE 数值与 full 的 geodesic 求和值直接比较。
+Compare the two epochs' `validation_angle_error`, `reconstruction` and gradients in `results.json`. Do not directly compare plain MSE magnitudes with full geodesic-sum magnitudes.
 
-### 后续候选的精确修改方式
+### Exact changes for later candidates
 
-以第二步 A 的完整命令为模板，替换 `--out` 并做以下单项修改；不要把这些片段单独当作命令运行：
+Start from A's full command, change `--out`, and apply the relevant single change. These fragments are not standalone commands.
 
-| 编号 | 命令修改 |
+| ID | Command change |
 | --- | --- |
-| C | 将 `--variant full` 换成 `--variant geodesic` |
-| D | 将 `--optimizer sgd` 换成 `--optimizer adam`，增加 `--learning-rate 0.0005` |
-| E | 增加 `--critic-learning-rate 0.001` |
-| F | 增加 `--critic-architecture direct` |
-| G | 增加 `--separate-critic-optimizers` |
-| H | 增加 `--sampling-strategy recordings`；在另一次独立比较中再加 `--minimum-start 16` |
-| I | 增加 `--learning-rate-decay 0.95 --learning-rate-decay-every 10000`；稳定后的衰减/无衰减两组都运行例如 12×1000 步 |
-| J | 增加 `--adversarial-objective non_saturating` |
+| C | Replace `--variant full` with `--variant geodesic` |
+| D | Replace `--optimizer sgd` with `--optimizer adam`; add `--learning-rate 0.0005` |
+| E | Add `--critic-learning-rate 0.001` |
+| F | Add `--critic-architecture direct` |
+| G | Add `--separate-critic-optimizers` |
+| H | Add `--sampling-strategy recordings`; compare a separate run with `--minimum-start 16` afterward |
+| I | Add `--learning-rate-decay 0.95 --learning-rate-decay-every 10000`; run both decay/no-decay arms for, for example, 12x1000 updates |
+| J | Add `--adversarial-objective non_saturating` |
 
-## 如何最快判断结果
+## Read results quickly
 
-先看开发集 S11，不要用反复评估 S5 来选择超参数。
+Use S11 development validation to select hyperparameters. Repeated S5 evaluations must not drive that selection.
 
-| 观察项 | 继续 / 排查标准 |
+| Observation | Continue / investigate criteria |
 | --- | --- |
-| 数值健康 | loss、验证误差有限，更新可执行。有限值只是最低门槛 |
-| 学习趋势 | 比较第 1000/2000 步验证；小幅波动正常，误差跃升至旧记录约 10 的量级应暂停排查 |
-| 相对零速度 | 使用当前配置相同 S11 窗口的基线。旧 0.704 仅供同数据同协议参考；未超过基线不等于程序坏了，也不能宣布复现成功 |
-| 对抗状态 | 接近 100% 的 D 准确率 + minimax 项接近零 + G 不改善，才共同支持失衡判断。D 为 50% 也不等于成功 |
-| 梯度 | 日志是裁剪前范数；很大需排查，但不能直接认定裁剪失效 |
+| Numerical health | Finite losses/validation and completed updates are minimum requirements |
+| Learning trend | Compare validation at 1000/2000 updates. Small fluctuations are normal; jumps toward the earlier error scale of about 10 warrant investigation |
+| Zero-velocity comparison | Use the same current S11 windows. The historical 0.704 only applies to matching data/protocol. Being worse does not alone prove a code bug or successful reproduction |
+| Adversarial state | Near-perfect D accuracy, a minimax term near zero and stalled G validation jointly suggest imbalance. D accuracy near 50% is not sufficient evidence of success |
+| Gradients | Logs show pre-clip norms. Large values warrant investigation but do not prove clipping failed |
 
-下面的可选片段读取 A 的保存配置，重建**与训练验证相同**的 S11 窗口，计算零速度基线并汇总两轮模型误差。使用 Bash/Git Bash 粘贴；PowerShell 用户可将 Python 内容存为临时 `.py` 后用现有环境执行。测试另一候选时只改 `run`。
+This optional snippet reads A's saved configuration, reconstructs the **same S11 validation windows**, computes zero velocity and summarizes both epochs. Paste in Bash/Git Bash. PowerShell users can save the Python body to a temporary `.py` and run it in the existing environment. To inspect another candidate, change `run`.
 
 ```bash
 python - <<'PY'
@@ -157,30 +157,30 @@ print(json.dumps(report, indent=2))
 PY
 ```
 
-差值为负表示模型平均误差低于同窗口零速度。S11 是随机开发窗口，S5 是固定八窗口且使用原始目标；不要把两种协议或不同采样配置的数值直接互比。片段未评估随机初始化模型；若要声称训练优于初始化，需要另外记录同一验证集的 step-0 结果。
+A negative difference means lower model error than zero velocity on the same windows. S11 uses random development windows; S5 uses fixed eight-window evaluation and raw targets. Do not directly compare these protocols or different sampling settings. This snippet does not evaluate random initialization; a claim about improvement over initialization needs a separate step-0 evaluation on the same validation set.
 
-2000 步的作用是筛掉明显不稳定候选。表现稳定但还略差于基线时，可延长到 5000–10000 步；不要仅凭两个点的小幅差异下结论。正式比较还需逐动作结果与预测可视化。
+Use 2000 updates to reject clearly unstable candidates. A stable candidate still slightly worse than zero velocity can continue to 5000-10000 updates. Two slightly different validation points do not establish a robust conclusion. Formal comparison also needs per-action results and motion visualizations.
 
-## 检查点、续训与正式实验
+## Checkpoints, resume and formal experiments
 
-- 每个 epoch 结束覆盖 `last.pt`。启用 S11 后，验证均值改善时更新 `best.pt`，默认按 Euler 误差选择。
-- 上面的 `--save-every 1` 额外保留每轮 `epoch_001.pt` 等，便于比较。当前没有按 step 自动存档。
-- 同一实验延长训练时，使用保存的配置，不再传 `--config`：
+- `last.pt` is overwritten after every completed epoch. S11 validation improvements update `best.pt`, selected by Euler error by default.
+- `--save-every 1` additionally retains `epoch_001.pt`, etc. There is no automatic step-based checkpointing.
+- Extend the same experiment using its saved configuration without `--config`:
 
 ```bash
 python -m aged.train --root data/h36m --out experiments/p0-A-full-sgd --resume experiments/p0-A-full-sgd/last.pt --epochs 10 --device cuda
 ```
 
-这会保留每轮 1000 步，总预算到 10000 步，且保留 S11 验证与每轮存档。改变优化器、LR、目标、采样、结构或每轮步数必须新开目录，不能通过 `--resume` 切换。`--init-from` 也要求相同 G 优化器类型，不是 Adam→SGD 的转换工具。
+This retains 1000 updates/epoch and extends the total to 10000 updates, with S11 validation and per-epoch snapshots. Changing optimizer, LR, objective, sampling, architecture or epoch size requires a new run directory; `--resume` rejects those changes. `--init-from` also requires the same G optimizer type and does not convert Adam state to SGD.
 
-选定稳定设置后，再开展以下实验：
+After choosing stable settings:
 
-1. 在 S11 上用 seed 0/1/2 检查稳定性，报告均值和波动，不只保留最好的一次。
-2. 固定最终设置，重新从头训练六个训练受试者；short-term YAML 下移除 `--val-subject S11`。若使用含 S11 的 team-reference YAML，则显式加 `--final`。重新拟合统计量，不能直接续训开发检查点来改变划分。
-3. 正式预算可用 50×2000 次更新，并清楚标注 2000 为工程定义；此时无 S11，保存 last 和周期存档，不存在验证 best。严格跑满论文 50 epochs 时不要启用会提前结束的早停。
-4. 对 25 帧独立长期模型使用 `configs/long-term.yaml`，重新验证稳定性。增加 `--horizon 100` 只是 rollout 能力，不代表已得到正确长期动作。
-5. 在设置冻结后做 S5 定量评估、逐动作分析和可视化。重建统计量后 S11/S5 分数不应与开发阶段混为一个表。
+1. Check seeds 0/1/2 on S11 and report means and variability, not only the best run.
+2. Freeze settings and train from scratch on all six training subjects. Remove `--val-subject S11` with the short-term YAML; add `--final` when using a team-reference YAML that holds out S11. Refit normalization; do not change the split by resuming a development checkpoint.
+3. A formal budget can use 50x2000 updates, explicitly identifying 2000 as an engineering epoch definition. Without S11, retain last/periodic checkpoints; there is no validation best. Disable early stopping when reporting a full 50-epoch paper run.
+4. Train the separate 25-frame model with `configs/long-term.yaml` and verify its stability. `--horizon 100` enables rollout but does not establish long-term quality.
+5. After settings are frozen, evaluate S5, analyze each action and visualize predictions. Keep development scores and final scores with refitted normalization separate.
 
-每次保留代码 SHA、有效 `config.json`、命令、`results.json`、归一化、检查点和数据指纹。结论需注明属于“流程通过”“训练稳定”还是“达到论文指标”，三者分别需要证据。
+Retain the code SHA, effective `config.json`, commands, `results.json`, normalization, checkpoints and data fingerprint. Distinguish evidence of pipeline operation, stable learning and reproduction of paper metrics.
 
-相关文档：[论文设置与解释](PAPER_ALIGNMENT.md)、[成员贡献与兼容范围](TEAM_INTEGRATION.md)、[验证范围](VALIDATION.md)。
+Related: [paper settings and assumptions](PAPER_ALIGNMENT.md), [team contributions and compatibility](TEAM_INTEGRATION.md), [validation scope](VALIDATION.md).

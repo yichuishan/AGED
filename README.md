@@ -120,7 +120,7 @@ lambda 0.6 and both recurrent discriminators.
 
 Existing short/long configs retain **Adam at LR 0.005** for compatibility. The
 team's earlier GPU diagnostic found this combination unstable. Before launching
-50 epochs, follow the [short SGD check](docs/GPU_TRAINING_GUIDE.md#最快验证流程)
+50 epochs, follow the [short SGD check](docs/GPU_TRAINING_GUIDE.md#fastest-validation-workflow)
 on S11; keeping the command interface compatible does not establish convergence.
 
 ```bash

@@ -162,3 +162,9 @@ checkpoints. Existing member capabilities and meaningful whole-pipeline tests
 are retained. Temporary final runs and package builds were kept outside the
 checkout. No CUDA hardware, real H3.6M rerun or native Windows verification was
 available for this audit; published accuracy still requires those experiments.
+
+The dashboard, backend messages and usage guides now use English. Chromium
+checks also passed with a `zh-CN` browser locale, including errors, resume and
+mobile layout; the documentation screenshot was regenerated from a real
+synthetic CPU run. A tracked-text scan found no Chinese characters, and all
+75 original integration-record files remain byte-identical to the uploaded ZIP.

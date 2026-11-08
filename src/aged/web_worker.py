@@ -31,7 +31,7 @@ def main():
     if request.get("resume"):
         history = load_checkpoint(request["resume"])["history"]
         print(EVENT_PREFIX + json.dumps({"type": "history", "history": history}), flush=True)
-    print("正在读取数据、拟合统计量并准备模型；首次加载可能需要一些时间。", flush=True)
+    print("Loading data, fitting normalization statistics and preparing the model. Initial loading may take some time.", flush=True)
     checkpoint = run_training(
         Config(**request["config"]), request["root"], request["out"],
         resume=request.get("resume"), init_from=request.get("init_from"),
