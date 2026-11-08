@@ -15,33 +15,53 @@ execution have not been validated here.** See
 [paper alignment](docs/PAPER_ALIGNMENT.md),
 [source audit](docs/PROVENANCE.md) and [validation scope](docs/VALIDATION.md).
 
-## Install
+## Install for GPU training
 
-Run commands from this repository's root, using Python 3.10 or later:
+Run commands from the repository root, using Python 3.10 or later on a machine
+with an NVIDIA GPU and compatible driver. Check the machine first:
 
 ```bash
-python -m venv .venv
+nvidia-smi
+```
+
+Select the supported CUDA wheel at the
+[official PyTorch selector](https://pytorch.org/get-started/locally/).
+Use its `--index-url` value as `TORCH_INDEX_URL`. For example, **only if that
+selector recommends CUDA 12.8 for your machine**:
+
+```bash
+TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128 bash scripts/setup.sh --cuda
 source .venv/bin/activate
-# CPU installation; use the official PyTorch selector for a CUDA wheel instead.
-python -m pip install --index-url https://download.pytorch.org/whl/cpu torch
-python -m pip install -r requirements.txt
-python -m pip check
+python -c "import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.cuda.get_device_name(0))"
 python -m pytest -q
 ```
 
-Windows Git Bash activation is `source .venv/Scripts/activate`.
-For NVIDIA GPUs, install the appropriate wheel from the
-[official PyTorch selector](https://pytorch.org/get-started/locally/) into the
-virtual environment, then run `pip install -r requirements.txt`.
-The model code is device agnostic; a CUDA-capable runtime and GPU are required.
+`setup.sh` defaults to CUDA mode. A fresh CUDA installation requires an explicit
+official CUDA wheel index; an already-installed usable CUDA runtime can be
+reused. A CPU wheel is replaced when a CUDA index is supplied, even if the CPU
+package has a newer version. Setup fails if CUDA is still unavailable: it does
+not silently declare a CPU installation ready for GPU training. A local CUDA
+toolkit alone is not evidence that PyTorch can access a GPU.
 
-Alternatively, `bash scripts/setup.sh` prepares a CPU environment by default,
-then prints its activation command. It reuses an already installed torch.
-TensorBoard is optional: `python -m pip install -e '.[tracking]'`.
+### CPU validation only
 
-In the prepared cloud machine, activate
-`source /workspace/aged-venv/bin/activate`. Each cloud task is already isolated;
-use the existing checkout and do not create a Git worktree unless requested.
+For laptops or this CPU-only cloud environment, explicitly request CPU:
+
+```bash
+bash scripts/setup.sh --cpu
+source .venv/bin/activate
+python -m pytest -q
+```
+
+This validates the pipeline but does not perform the full GPU experiment.
+Windows users can install the selector's wheel manually in a virtual environment
+and then run `python -m pip install -r requirements.txt`; Git Bash activation is
+`source .venv/Scripts/activate`. TensorBoard is optional:
+`python -m pip install -e '.[tracking]'`.
+
+In the prepared cloud machine, activate `/workspace/AGED/.venv/bin/activate`.
+Each cloud task is already isolated; use the existing checkout and do not
+create a Git worktree unless requested.
 
 ## Data
 
@@ -69,14 +89,14 @@ lambda 0.6 and both recurrent discriminators.
 
 ```bash
 python -m aged.train --root data/h36m \
-  --config configs/short-term.yaml --out experiments/full-short --device auto
+  --config configs/short-term.yaml --out experiments/full-short --device cuda
 ```
 
 Long term: train a separate 25-frame (1-second) model.
 
 ```bash
 python -m aged.train --root data/h36m \
-  --config configs/long-term.yaml --out experiments/full-long --device auto
+  --config configs/long-term.yaml --out experiments/full-long --device cuda
 ```
 
 Use a new output directory for each experiment. Optional development validation
@@ -84,7 +104,7 @@ holds out S11 from both training and normalization:
 
 ```bash
 python -m aged.train --root data/h36m --val-subject S11 \
-  --out experiments/dev-full --track tensorboard
+  --out experiments/dev-full --track tensorboard --device cuda
 ```
 
 S5 is never used for fitting statistics or selecting checkpoints.
@@ -114,7 +134,7 @@ normalization, configuration and RNG states:
 
 ```bash
 python -m aged.train --root data/h36m --out experiments/full-short \
-  --resume experiments/full-short/last.pt --epochs 50 --device auto
+  --resume experiments/full-short/last.pt --epochs 50 --device cuda
 ```
 
 The total epoch count must exceed the saved epoch. Changed training objectives
@@ -128,7 +148,7 @@ metadata, command history and checkpoints are written into the run directory.
 # Fixed eight-window S5 evaluation; always includes zero-velocity.
 python -m aged.evaluate --root data/h36m \
   --checkpoint experiments/full-short/last.pt \
-  --output experiments/full-short/test-results.json --device auto
+  --output experiments/full-short/test-results.json --device cuda
 
 # Standalone zero-velocity table.
 python -m aged.evaluate --root data/h36m --baseline \
@@ -137,12 +157,12 @@ python -m aged.evaluate --root data/h36m --baseline \
 # Long-term model, 1-second quantitative horizons.
 python -m aged.evaluate --root data/h36m \
   --checkpoint experiments/full-long/last.pt --horizon 25 \
-  --output experiments/full-long/test-results.json
+  --output experiments/full-long/test-results.json --device cuda
 
 # Optional 4-second rollout, using the separately trained long-term model.
 python -m aged.evaluate --root data/h36m \
   --checkpoint experiments/full-long/last.pt --horizon 100 \
-  --output experiments/full-long/rollout-100.json
+  --output experiments/full-long/rollout-100.json --device cuda
 ```
 
 Evaluation uses actual raw S5 targets, restores model predictions using saved

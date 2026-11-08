@@ -34,11 +34,17 @@ Coverage:
 - Conditional full CUDA training/evaluation test; skipped on this machine.
 
 The whole-pipeline suite completed with **13 passed, 1 CUDA skipped**, including
-the clean environment created by `bash scripts/setup.sh`. In the environment
+the clean CPU environment prepared with `bash scripts/setup.sh --cpu`. In the environment
 with optional TensorBoard installed, the actual CLI train/resume/evaluate test
 also passed and verified that event files were written. Both installed console
 entry points were checked from outside the repository. Synthetic scores are
 deliberately not listed as Human3.6M benchmark numbers.
+
+The installer now defaults to CUDA mode for formal GPU training. CPU mode,
+invalid option rejection and rejection of an existing CPU wheel in CUDA mode
+without a CUDA installation index were exercised. The official cu128 index was
+queried for available wheels, but CUDA wheel installation, driver compatibility
+and real GPU execution remain unverified on this CPU-only machine.
 
 Before reporting a reproduction result, run on the authorized real export,
 verify zero-velocity against published tables, check action averaging and the
