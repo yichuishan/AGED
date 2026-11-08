@@ -3,16 +3,36 @@
 import os
 from pathlib import Path
 import random
+import shlex
+import subprocess
 
 import numpy as np
 import torch
 
-from .config import Config
+from .config import Config, RESUME_MUTABLE
 from .critics import Critic
 from .data import ACTIONS, Normalisation
 from .models import AGEDModel, MotionPredictor
 
 CHECKPOINT_VERSION = 1
+
+
+def training_arguments(config, root, out, config_path=None, resume=None, init_from=None):
+    """Replayable CLI arguments shared by programmatic and web training."""
+    args = ["--root", str(Path(root).resolve()), "--out", str(Path(out).resolve())]
+    if resume:
+        args += ["--resume", str(Path(resume).resolve())]
+        for name in RESUME_MUTABLE:
+            args += ["--" + name.replace("_", "-"), str(getattr(config, name))]
+    else:
+        args += ["--config", str(Path(config_path).resolve())]
+        if init_from:
+            args += ["--init-from", str(Path(init_from).resolve())]
+    return args
+
+
+def format_command(arguments):
+    return subprocess.list2cmdline(arguments) if os.name == "nt" else shlex.join(arguments)
 
 
 def seed_everything(seed: int):
@@ -57,7 +77,7 @@ def save_checkpoint(path, payload):
 
 def load_checkpoint(path):
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    if checkpoint.get("format_version") != CHECKPOINT_VERSION:
+    if not isinstance(checkpoint, dict) or checkpoint.get("format_version") != CHECKPOINT_VERSION:
         raise ValueError("unsupported checkpoint; legacy standalone predictor weights are not full AGED checkpoints")
     if checkpoint.get("action_names") != ACTIONS:
         raise ValueError("checkpoint action mapping differs from this package")

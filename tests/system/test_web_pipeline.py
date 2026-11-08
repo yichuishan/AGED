@@ -118,6 +118,8 @@ def test_web_errors_preflight_and_local_boundary(motion_export, tmp_path):
         bad_checkpoint = tmp_path / "bad.pt"
         bad_checkpoint.write_text("not a checkpoint")
         assert request("POST", "/api/checkpoint", {"path": str(bad_checkpoint)})[0] == 400
+        torch.save(["not an AGED checkpoint"], bad_checkpoint)
+        assert request("POST", "/api/checkpoint", {"path": str(bad_checkpoint)})[0] == 400
         # Paths exist, but malformed content must surface as a real worker traceback.
         bad_root = tmp_path / "bad-data"
         for subject in ("S1", "S6", "S7", "S8", "S9", "S11"):
@@ -142,3 +144,14 @@ def test_web_force_stop_cleans_up_worker(motion_export, tmp_path):
         done = wait_for_job(request, job["id"])
         assert done["status"] == "terminated"
         assert manager.jobs[job["id"]]["process"].poll() is not None
+
+
+def test_web_shutdown_drains_logs_and_persists_terminal_state(motion_export, tmp_path):
+    with dashboard(tmp_path) as (request, manager):
+        status, job = request("POST", "/api/start", settings(motion_export, tmp_path))
+        assert status == 201
+        process = manager.jobs[job["id"]]["process"]
+        reader = manager.jobs[job["id"]]["reader"]
+        metadata = manager.state_dir / job["id"] / "session.json"
+    assert process.poll() is not None and not reader.is_alive()
+    assert json.loads(metadata.read_text())["status"] == "terminated"

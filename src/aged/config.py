@@ -9,6 +9,7 @@ import yaml
 from .data import ACTIONS, TRAIN_SUBJECTS
 
 VARIANTS = ("full", "geodesic", "euclidean", "plain", "fidelity", "continuity")
+RESUME_MUTABLE = ("epochs", "device", "threads", "num_workers", "track", "project", "patience", "save_every")
 
 
 @dataclass

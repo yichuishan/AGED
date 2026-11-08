@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 import random
-import shlex
 import sys
 import time
 
@@ -15,12 +14,12 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
-from .config import Config, VARIANTS
+from .config import Config, RESUME_MUTABLE, VARIANTS
 from . import data as D
 from . import critics as C
 from .evaluate import mean_angle_error
 from .losses import GeodesicLoss
-from .runtime import CHECKPOINT_VERSION, build_model, load_checkpoint, pick_device, save_checkpoint, seed_everything
+from .runtime import CHECKPOINT_VERSION, build_model, format_command, load_checkpoint, pick_device, save_checkpoint, seed_everything, training_arguments
 from .tracking import Tracker, environment
 
 
@@ -156,7 +155,7 @@ def run_training(config: Config, root, out, resume=None, init_from=None, command
     if saved:
         old = saved["config"]
         for key, value in config.to_dict().items():
-            if key not in ("epochs", "device", "threads", "num_workers", "track", "project", "patience", "save_every") and value != old[key]:
+            if key not in RESUME_MUTABLE and value != old[key]:
                 raise ValueError(f"resume cannot change {key}; start a separate run instead")
         norm = D.Normalisation.from_dict(saved["normalisation"])
         start_epoch = saved["epoch"] + 1
@@ -223,17 +222,9 @@ def run_training(config: Config, root, out, resume=None, init_from=None, command
     snapshot.write_text(config_text)
     (run / "normalisation.json").write_text(json.dumps(norm.to_dict(), indent=2) + "\n")
     if command_args is None:
-        command_args = ["--root", str(Path(root).resolve()), "--out", str(run.resolve())]
-        if resume:
-            command_args += ["--resume", str(Path(resume).resolve())]
-            for name in ("epochs", "device", "threads", "num_workers", "track", "project", "patience", "save_every"):
-                command_args += ["--" + name.replace("_", "-"), str(getattr(config, name))]
-        else:
-            command_args += ["--config", str(snapshot.resolve())]
-            if init_from:
-                command_args += ["--init-from", str(Path(init_from).resolve())]
+        command_args = training_arguments(config, root, run, snapshot, resume, init_from)
     with (run / "commands.txt").open("a", encoding="utf-8") as handle:
-        handle.write(shlex.join([sys.executable, "-m", "aged.train", *command_args]) + "\n")
+        handle.write(format_command([sys.executable, "-m", "aged.train", *command_args]) + "\n")
     tracker = Tracker(config.track, str(run), config.to_dict(), project=config.project)
     runtime = environment()
     runtime["selected_device"] = str(device)

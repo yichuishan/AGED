@@ -118,3 +118,45 @@ JavaScript errors or CSP violations were observed. A wheel build includes all
 HTML/CSS/JS assets. These runs use synthetic CPU data; CUDA and native Windows
 dashboard execution still require validation on the training machine. See
 [local dashboard usage](LOCAL_TRAINING_UI.md).
+
+## Final consistency and cleanup audit
+
+The final full CPU regression completed with **26 passed, 2 CUDA skipped** on
+PyTorch 2.15.0+cpu. A separate actual train/resume/evaluate CLI check also passed
+in the PyTorch 2.14.1+cpu environment with TensorBoard events enabled. All six
+variants, default-size models, short/long horizons, geometry gradients,
+scheduled resume, warm start, critic alternatives and web process controls
+remain covered by the system suite.
+
+The actual old `be674c6` checkpoint continuation was checked again after
+cleanup: model and both optimizer states still match the old-code reference
+bit-for-bit on the same CPU runtime. CLI and web now share resume-field policy
+and replayable command construction. Parameter names, v1 files, default
+configuration and existing command flags remain unchanged.
+
+Additional final checks:
+
+- Chromium: real form edits, paths, directory browser, training/curves,
+  configuration and log downloads, refresh, resume, full exception display and
+  mobile overflow; no JavaScript errors or CSP violations.
+- Real HTTP training with `num_workers=1`, then warm start with direct critics
+  and separate optimizers.
+- A built wheel, loaded outside the checkout, serves all bundled assets and
+  completes real training in its worker subprocess; no source-tree import is
+  required. Dependency consistency and setup-script syntax also pass.
+- The contributor notebook passes all four bounded synthetic experiments and
+  production-dataset sampling after removing duplicate shape checks and its
+  redundant test runner. Custom synthetic feature widths now follow its `D`
+  argument. Historical experiment numbers remain historical.
+
+Evaluation rejects invalid/zero horizons and duplicate/empty action selections;
+the published-baseline gate cannot pass with missing short-term horizons.
+Non-AGED checkpoint payloads return a clear error, and dashboard shutdown waits
+for its log reader to persist the terminal state.
+
+Removed the duplicate continuity PDF export (PNG, results, table and experiment
+code retained), local stale build copies and obsolete standalone smoke
+checkpoints. Existing member capabilities and meaningful whole-pipeline tests
+are retained. Temporary final runs and package builds were kept outside the
+checkout. No CUDA hardware, real H3.6M rerun or native Windows verification was
+available for this audit; published accuracy still requires those experiments.

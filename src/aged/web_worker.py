@@ -7,12 +7,13 @@ import time
 
 from .config import Config
 from .runtime import load_checkpoint
-from .train import run_training
 
 EVENT_PREFIX = "@@AGED_WEB@@"
 
 
 def main():
+    from .train import run_training
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--request", required=True)
     args = parser.parse_args()

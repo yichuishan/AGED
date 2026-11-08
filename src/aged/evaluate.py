@@ -38,11 +38,11 @@ def published_baseline_report(result, tolerance=0.0055):
         for ms, reference in zip((80, 160, 320, 400), PUBLISHED_ZERO_VELOCITY[action]):
             values = row["zero_velocity"]
             actual = values.get(ms, values.get(str(ms)))
-            if actual is not None:
-                difference = abs(float(actual) - reference)
-                entries.append({"action": action, "milliseconds": ms, "actual": float(actual),
-                                "reference": reference, "absolute_error": difference,
-                                "passed": bool(np.isfinite(actual) and difference <= tolerance)})
+            difference = abs(float(actual) - reference) if actual is not None else None
+            entries.append({"action": action, "milliseconds": ms,
+                            "actual": float(actual) if actual is not None else None,
+                            "reference": reference, "absolute_error": difference,
+                            "passed": bool(actual is not None and np.isfinite(actual) and difference <= tolerance)})
     return {"passed": bool(entries) and all(entry["passed"] for entry in entries),
             "checked_entries": len(entries), "tolerance": tolerance, "entries": entries,
             "note": "Short-term table only; Sitting 160 ms uses the documented inferred 0.63 correction."}
@@ -139,14 +139,17 @@ def score(root, checkpoint=None, actions=None, horizon=None, device="cpu"):
         model, norm, config, saved = load_model(checkpoint, str(selected_device))
         if config.observed_length != 50:
             raise ValueError("fixed evaluation protocol requires a 50-frame observed window")
-        actions = actions or config.actions
-        horizon = horizon or config.prediction_length
+        actions = config.actions if actions is None else actions
+        horizon = config.prediction_length if horizon is None else horizon
     else:
         model, config, saved = None, None, {}
-        actions, horizon = actions or D.ACTIONS, horizon or 10
-        norm = D.fit_normalisation(root, D.TRAIN_SUBJECTS, actions)
-    if not 1 <= horizon <= 100 or set(actions) - set(D.ACTIONS):
+        actions = D.ACTIONS if actions is None else actions
+        horizon = 10 if horizon is None else horizon
+    if (isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= 100
+            or not actions or len(set(actions)) != len(actions) or set(actions) - set(D.ACTIONS)):
         raise ValueError("choose valid actions and a prediction horizon in [1,100]")
+    if model is None:
+        norm = D.fit_normalisation(root, D.TRAIN_SUBJECTS, actions)
     test_set = sample_test_set(root, norm, actions, horizon, include_raw=True)
     rows = {}
     for action, (observed, target, raw_observed, raw_target) in test_set.items():

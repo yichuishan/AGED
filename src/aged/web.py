@@ -11,7 +11,6 @@ import os
 import pickle
 from pathlib import Path
 import secrets
-import shlex
 import signal
 import string
 import subprocess
@@ -23,12 +22,11 @@ import webbrowser
 
 import torch
 
-from .config import Config, VARIANTS
+from .config import Config, RESUME_MUTABLE, VARIANTS
 from .data import ACTIONS, TRAIN_SUBJECTS
-from .runtime import load_checkpoint
+from .runtime import format_command, load_checkpoint, training_arguments
+from .web_worker import EVENT_PREFIX
 
-EVENT_PREFIX = "@@AGED_WEB@@"
-RESUME_MUTABLE = ("epochs", "device", "threads", "num_workers", "track", "project", "patience", "save_every")
 ACTIVE = {"running", "stopping"}
 
 # Labels and groups are UI metadata; Config remains the validation authority.
@@ -179,15 +177,8 @@ class JobManager:
             folder.mkdir(parents=True)
             config_path = folder / "config.json"
             config_path.write_text(json.dumps(prepared["config"], indent=2), encoding="utf-8")
-            arguments = ["--root", prepared["root"], "--out", prepared["out"]]
-            if prepared["resume"]:
-                arguments += ["--resume", prepared["resume"]]
-                for name in RESUME_MUTABLE:
-                    arguments += ["--" + name.replace("_", "-"), str(prepared["config"][name])]
-            else:
-                arguments += ["--config", str(config_path)]
-                if prepared["init_from"]:
-                    arguments += ["--init-from", prepared["init_from"]]
+            arguments = training_arguments(Config(**prepared["config"]), prepared["root"], prepared["out"],
+                                           config_path, prepared["resume"], prepared["init_from"])
             prepared.update(stop_file=str(folder / "stop"), command_args=arguments)
             request_path = folder / "request.json"
             request_path.write_text(json.dumps(prepared, indent=2), encoding="utf-8")
@@ -195,7 +186,7 @@ class JobManager:
             job = {"id": ident, "status": "running", "created": timestamp(), "finished": None,
                    "out": prepared["out"], "root": prepared["root"], "config": prepared["config"],
                    "mode": prepared["mode"], "checkpoint": prepared["resume"] or prepared["init_from"] or "",
-                   "command": subprocess.list2cmdline(command) if os.name == "nt" else shlex.join(command),
+                   "command": format_command(command),
                    "log_path": str(folder / "console.log"), "folder": folder,
                    "logs": deque(maxlen=3000), "cursor": 0, "history": [], "series": deque(maxlen=600),
                    "progress": None, "returncode": None, "error": None, "forced": False}
@@ -214,7 +205,8 @@ class JobManager:
                 self._persist(job)
                 raise
             self._persist(job)
-            threading.Thread(target=self._read, args=(job,), daemon=True).start()
+            job["reader"] = threading.Thread(target=self._read, args=(job,), daemon=True)
+            job["reader"].start()
             return self.snapshot(ident)
 
     def _persist(self, job):
@@ -321,6 +313,10 @@ class JobManager:
             except subprocess.TimeoutExpired:
                 self._terminate(process, kill=True)
                 process.wait(timeout=5)
+        # Finish draining stdout and persist the terminal state before exiting.
+        for job in list(self.jobs.values()):
+            if "reader" in job:
+                job["reader"].join(timeout=5)
 
 
 class DashboardServer(ThreadingHTTPServer):

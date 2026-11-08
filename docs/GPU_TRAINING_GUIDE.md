@@ -73,6 +73,8 @@ python -m aged.evaluate --root data/h36m --baseline --check-baseline --output ex
 
 这是部署和评估检查；还不能证明学习效果。基线命令主要是 CPU 计算。若这个安装和数据已经通过，不必在每个候选前重复。测试套件包含需要可用 CUDA 的条件测试；实际执行数和跳过原因以日志为准。
 
+基线检查要求所选动作的 80/160/320/400 ms 数值齐全；过短的 horizon 缺少时域时不会通过。
+
 ### 第二步：只跑 A，约 2000 次更新
 
 ```bash

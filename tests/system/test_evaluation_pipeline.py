@@ -7,11 +7,12 @@ import subprocess
 import sys
 
 import numpy as np
+import pytest
 import torch
 
 from aged.config import Config
 from aged.data import TRAIN_SUBJECTS, fit_normalisation
-from aged.evaluate import mean_angle_error, pose_to_euler, raw_angle_error, sample_test_set, score, srnn_test_indices, zero_velocity
+from aged.evaluate import mean_angle_error, pose_to_euler, published_baseline_report, raw_angle_error, sample_test_set, score, srnn_test_indices, zero_velocity
 from aged.losses import expmap_to_rotation_matrix, geodesic_distance
 from aged.runtime import build_model
 
@@ -54,6 +55,15 @@ def test_fixed_windows_rotation_units_and_baseline(motion_export):
     # Crucial zero-angle derivative: small axis-angle perturbations must rotate.
     jacobian = torch.autograd.functional.jacobian(expmap_to_rotation_matrix, torch.zeros(3, dtype=torch.float64))
     assert jacobian.abs().sum() == 6
+    for invalid in ({"horizon": 0}, {"horizon": -1}, {"horizon": 101}, {"horizon": 2.5},
+                    {"actions": []}, {"actions": ["walking", "walking"]}):
+        with pytest.raises(ValueError, match="valid actions"):
+            score(motion_export, **invalid)
+    # A matching 80-ms number must not certify missing 160/320/400-ms entries.
+    partial = {"per_action": {"walking": {"zero_velocity": {80: 0.39}}}}
+    report = published_baseline_report(partial)
+    assert not report["passed"] and report["checked_entries"] == 4
+    assert sum(row["actual"] is None for row in report["entries"]) == 3
 
 
 def test_paper_sized_model_runs_the_complete_objective(motion_export):
