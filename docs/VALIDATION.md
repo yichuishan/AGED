@@ -99,3 +99,22 @@ These are integration/diagnostic results, not a reproduction benchmark.
 See the [GPU training guide](GPU_TRAINING_GUIDE.md) for controlled experiments,
 priorities and a short validation procedure. Existing compatibility defaults
 have not silently been changed by this documentation update.
+
+## Local training dashboard
+
+The dashboard uses the production trainer in an isolated subprocess and adds
+optional progress/epoch-stop callbacks. CLI behavior and checkpoint format stay
+unchanged. The combined CPU suite completed with **25 passed, 2 CUDA skipped**.
+New HTTP pipeline checks exercise real updates, saved-epoch stopping, resume,
+bit-exact CPU model equality against a normal run, malformed-data traceback,
+preflight validation, task exclusion, local request checks, log downloads and
+worker termination.
+
+Headless local Chromium checks fill the actual form and paths, browse a
+directory, execute training, observe real SVG curves, filter logs, export
+configuration, reload the page, resume and display an actual worker failure.
+A 390-pixel mobile viewport was checked for horizontal overflow; no browser
+JavaScript errors or CSP violations were observed. A wheel build includes all
+HTML/CSS/JS assets. These runs use synthetic CPU data; CUDA and native Windows
+dashboard execution still require validation on the training machine. See
+[local dashboard usage](LOCAL_TRAINING_UI.md).

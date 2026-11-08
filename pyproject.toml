@@ -18,6 +18,10 @@ analysis = ["matplotlib>=3.7"]
 [project.scripts]
 aged-train = "aged.train:main"
 aged-evaluate = "aged.evaluate:main"
+aged-web = "aged.web:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+aged = ["web_assets/*.html", "web_assets/*.css", "web_assets/*.js"]

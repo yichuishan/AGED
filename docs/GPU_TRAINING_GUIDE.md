@@ -71,7 +71,7 @@ python -m pytest -q
 python -m aged.evaluate --root data/h36m --baseline --check-baseline --output experiments/current-baseline.json
 ```
 
-这是部署和评估检查；还不能证明学习效果。基线命令主要是 CPU 计算。若这个安装和数据已经通过，不必在每个候选前重复。新环境无额外跳过条件时，当前测试套件在 CUDA 上应执行全部 24 项；实际结果以日志为准。
+这是部署和评估检查；还不能证明学习效果。基线命令主要是 CPU 计算。若这个安装和数据已经通过，不必在每个候选前重复。测试套件包含需要可用 CUDA 的条件测试；实际执行数和跳过原因以日志为准。
 
 ### 第二步：只跑 A，约 2000 次更新
 

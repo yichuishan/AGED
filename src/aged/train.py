@@ -143,7 +143,8 @@ def validate(model, geometry, loader, norm, device, config):
     return total / count, mean_angle_error(np.concatenate(predictions), np.concatenate(targets), norm)
 
 
-def run_training(config: Config, root, out, resume=None, init_from=None, command_args=None):
+def run_training(config: Config, root, out, resume=None, init_from=None, command_args=None,
+                 progress_callback=None, stop_requested=None):
     if resume and init_from:
         raise ValueError("resume and init_from are mutually exclusive")
     torch.set_num_threads(config.threads)
@@ -244,7 +245,7 @@ def run_training(config: Config, root, out, resume=None, init_from=None, command
             started = time.monotonic()
             train_set.set_epoch(epoch - 1)
             totals = {}
-            for batch in train_loader:
+            for batch_index, batch in enumerate(train_loader, 1):
                 set_learning_rate(generator_optimizer, config.learning_rate, step,
                                   config.learning_rate_decay, config.learning_rate_decay_every)
                 optimizers = (discriminator_optimizer.values() if isinstance(discriminator_optimizer, dict)
@@ -257,6 +258,10 @@ def run_training(config: Config, root, out, resume=None, init_from=None, command
                 step += 1
                 for key, value in diagnostics.items():
                     totals[key] = totals.get(key, 0.0) + value
+                if progress_callback is not None:
+                    progress_callback({"type": "batch", "epoch": epoch, "epochs": config.epochs,
+                                       "batch": batch_index, "steps_per_epoch": config.steps_per_epoch,
+                                       "step": step, "metrics": diagnostics})
             row = {"epoch": epoch, **{key: value / len(train_loader) for key, value in totals.items()},
                    "seconds": time.monotonic() - started, "step": step,
                    "learning_rate": generator_optimizer.param_groups[0]["lr"]}
@@ -295,6 +300,11 @@ def run_training(config: Config, root, out, resume=None, init_from=None, command
             (run / "results.json").write_text(json.dumps(results, indent=2, allow_nan=False) + "\n")
             tracker.log(epoch, {key: value for key, value in row.items() if isinstance(value, (float, int))})
             print(json.dumps(row, allow_nan=False))
+            if progress_callback is not None:
+                progress_callback({"type": "epoch", "metrics": row})
+            if stop_requested is not None and stop_requested():
+                print("Stop requested: saved the completed epoch; resume from last.pt")
+                break
             if validation_loader is not None and config.patience and since_best >= config.patience:
                 print(f"Early stopping: {since_best} epochs without validation improvement")
                 break

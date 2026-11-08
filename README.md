@@ -93,6 +93,24 @@ or benchmark result is implied by cloning this repository.
 
 ## Train
 
+### Local training dashboard
+
+Run in the existing GPU Python environment, from the repository root:
+
+```bash
+python -m aged.web --open
+```
+
+Open **http://127.0.0.1:8765**. Enter or browse the local dataset/output paths,
+edit every Config parameter, start a real training process, and inspect live
+loss/validation curves, stdout/stderr and full error traces. The page supports
+checkpoint configuration loading, resume, warm start and stopping after an
+epoch is saved. It uses the same trainer and v1 checkpoints as the CLI, with
+no new mandatory dependency. The UI starts from an explicit P0 SGD development
+preset; CLI defaults stay unchanged. See [dashboard usage](docs/LOCAL_TRAINING_UI.md).
+
+### Command line
+
 Short term: 50 observed frames, 10 predicted frames (400 ms). Defaults use all
 six training subjects, hidden size 1024, batch 16, LR 0.005, clip norm 5, 50 epochs,
 lambda 0.6 and both recurrent discriminators.
@@ -281,6 +299,8 @@ src/aged/
   critics.py, losses.py  complete adversarial and geometry components
   train.py, evaluate.py  the two end-to-end entry points
   runtime.py, tracking.py
+  web.py, web_worker.py   local HTTP dashboard and isolated training worker
+  web_assets/            offline HTML/CSS/JS dashboard
 tests/system/            whole-pipeline tests only
 experiments/             ignored run outputs
 ```
