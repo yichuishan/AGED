@@ -1,52 +1,52 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AGED · Training Studio</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="/" aria-label="AGED 首页"><span class="brand-mark">a<span>·</span></span><span>AGED<small>TRAINING STUDIO</small></span></a>
-    <div class="nav-label">WORKSPACE</div><div class="nav-current"><span>▦</span> 训练控制台 <span class="local-label">LOCAL</span></div>
-    <div class="sidebar-heading"><span>本次会话</span><span id="job-count">0</span></div><div id="job-list" class="job-list"><p class="sidebar-empty">启动实验后，可在这里切换查看。</p></div>
-    <div class="environment"><span class="nav-label">RUNTIME</span><div id="device-name">正在连接本地环境…</div><p id="runtime-details"></p><span class="connected"><i></i> 本机服务</span></div>
+    <a class="brand" href="/" aria-label="AGED home"><span class="brand-mark">a<span>·</span></span><span>AGED<small>TRAINING STUDIO</small></span></a>
+    <div class="nav-label">WORKSPACE</div><div class="nav-current"><span>▦</span> Training console <span class="local-label">LOCAL</span></div>
+    <div class="sidebar-heading"><span>This session</span><span id="job-count">0</span></div><div id="job-list" class="job-list"><p class="sidebar-empty">Your experiments will appear here.</p></div>
+    <div class="environment"><span class="nav-label">RUNTIME</span><div id="device-name">Connecting to the local runtime...</div><p id="runtime-details"></p><span class="connected"><i></i> Local server</span></div>
     <div class="sidebar-footer">Geometry. Fidelity. Continuity.<br>Human motion, one step ahead.</div>
   </aside>
   <main>
-    <header class="page-header"><div><div class="eyebrow">EXPERIMENT WORKSPACE <span>/</span> HUMAN3.6M</div><h1>训练控制台<span class="version">AGED</span></h1><p>配置实验，观察学习过程，保留每一次结果。</p></div><div id="status" class="status idle"><i></i><span>等待启动</span></div></header>
+    <header class="page-header"><div><div class="eyebrow">EXPERIMENT WORKSPACE <span>/</span> HUMAN3.6M</div><h1>Training console<span class="version">AGED</span></h1><p>Configure experiments. Follow training. Keep every result.</p></div><div id="status" class="status idle"><i></i><span>Ready</span></div></header>
     <div id="connection-warning" class="notice error hidden" role="alert"></div>
     <div class="workspace">
       <section class="configuration panel">
-        <div class="panel-title"><h2><span class="section-number">01</span> 实验配置</h2><button id="config-preview" class="text-button" type="button">导出配置 ↗</button></div>
+        <div class="panel-title"><h2><span class="section-number">01</span> Experiment setup</h2><button id="config-preview" class="text-button" type="button">Export config ↗</button></div>
         <form id="training-form">
           <div class="setup-fields">
-            <div class="field"><label for="mode">运行方式</label><select id="mode"><option value="new">新建训练</option><option value="resume">断点续训 · 恢复全部状态</option><option value="warm">预热启动 · 保留 G，重建 D</option></select></div>
-            <div class="field"><label for="preset">参数预设</label><select id="preset"></select></div><div id="preset-note" class="notice compact"></div>
-            <div class="field"><label for="root">数据集路径 <span class="required">*</span></label><div class="path-input"><input id="root" value="data/h36m" placeholder="例如 D:/datasets/h36m" required><button type="button" data-browse="root" aria-label="浏览数据集目录">浏览</button></div><small>服务所在电脑上的路径；包含 S1、S5、S6 等目录的 99 列 TXT 导出。</small></div>
-            <div class="field"><label for="out">输出目录 <span class="required">*</span></label><div class="path-input"><input id="out" required><button type="button" data-browse="out" aria-label="浏览输出目录">浏览</button></div><small>新实验使用空目录；日志、曲线数据及检查点均保留在本机。</small></div>
-            <div id="checkpoint-fields" class="field hidden"><label for="checkpoint">源检查点</label><div class="path-input"><input id="checkpoint" placeholder="experiments/…/last.pt"><button type="button" data-browse="checkpoint">浏览</button></div><button type="button" id="load-checkpoint" class="secondary load-button">载入检查点配置</button><small id="checkpoint-note">续训前先载入配置；可修改总轮数和运行、记录选项。</small></div>
+            <div class="field"><label for="mode">Run mode</label><select id="mode"><option value="new">New training run</option><option value="resume">Resume · Restore all state</option><option value="warm">Warm start · Keep G, reset D</option></select></div>
+            <div class="field"><label for="preset">Parameter preset</label><select id="preset"></select></div><div id="preset-note" class="notice compact"></div>
+            <div class="field"><label for="root">Dataset path <span class="required">*</span></label><div class="path-input"><input id="root" value="data/h36m" placeholder="e.g. D:/datasets/h36m" required><button type="button" data-browse="root" aria-label="Browse dataset directory">Browse</button></div><small>Path on the server computer. A 99-column TXT export with subject directories such as S1, S5 and S6.</small></div>
+            <div class="field"><label for="out">Output directory <span class="required">*</span></label><div class="path-input"><input id="out" required><button type="button" data-browse="out" aria-label="Browse output directory">Browse</button></div><small>Use an empty directory for a new run. Logs, metrics and checkpoints stay on this computer.</small></div>
+            <div id="checkpoint-fields" class="field hidden"><label for="checkpoint">Source checkpoint</label><div class="path-input"><input id="checkpoint" placeholder="experiments/…/last.pt"><button type="button" data-browse="checkpoint">Browse</button></div><button type="button" id="load-checkpoint" class="secondary load-button">Load checkpoint config</button><small id="checkpoint-note">Load the configuration before resuming. Total epochs, runtime and logging options remain editable.</small></div>
           </div>
           <div id="parameter-groups"></div><div id="form-message" class="notice hidden" role="status"></div>
-          <div class="form-actions"><button type="button" id="validate" class="secondary">检查路径与参数</button><button id="start" class="primary" type="submit"><span>▶</span> 开始训练</button></div><p class="form-footnote">现有 Python 环境 · 无数据上传 · 每次一个训练任务</p>
+          <div class="form-actions"><button type="button" id="validate" class="secondary">Validate paths & config</button><button id="start" class="primary" type="submit"><span>▶</span> Start training</button></div><p class="form-footnote">Current Python environment · Local data · One training job at a time</p>
         </form>
       </section>
       <section class="monitor">
         <div class="metric-grid">
-          <article class="metric"><div>训练进度 <span>↗</span></div><strong id="epoch-metric">— <small>/ — 轮</small></strong><div class="progress-track"><div id="progress-bar"></div></div><p id="step-metric">等待第一个实验</p></article>
-          <article class="metric"><div>重建损失 <span>◈</span></div><strong id="loss-metric">—</strong><p id="loss-caption">训练 batch 的即时值</p></article>
-          <article class="metric"><div>验证 Euler 误差 <span>◎</span></div><strong id="validation-metric">—</strong><p>各报告时域的平均值 · 越低越好</p></article>
+          <article class="metric"><div>Training progress <span>↗</span></div><strong id="epoch-metric">— <small>/ — epochs</small></strong><div class="progress-track"><div id="progress-bar"></div></div><p id="step-metric">Waiting for the first experiment</p></article>
+          <article class="metric"><div>Reconstruction loss <span>◈</span></div><strong id="loss-metric">—</strong><p id="loss-caption">Latest training batch</p></article>
+          <article class="metric"><div>Validation Euler error <span>◎</span></div><strong id="validation-metric">—</strong><p>Mean over reported horizons · Lower is better</p></article>
         </div>
-        <section class="panel chart-panel"><div class="panel-title"><h2><span class="section-number">02</span> 学习曲线</h2><span class="live-label"><i></i> LIVE</span></div><div class="chart-grid"><div><div class="chart-heading">重建与生成器损失 <span>按更新步数</span></div><div id="loss-chart" class="chart"><div class="chart-empty">训练开始后显示真实数据</div></div></div><div><div class="chart-heading">S11 / 开发集误差 <span>按 epoch</span></div><div id="validation-chart" class="chart"><div class="chart-empty">启用验证集后显示曲线</div></div></div></div><div class="chart-note">损失尺度随模型变体变化；曲线有限不等于收敛。验证集用于开发，S5 留作最终评估。</div></section>
-        <div class="diagnostics"><span>Fidelity 准确率 <b id="fidelity-metric">—</b></span><span>Continuity 准确率 <b id="continuity-metric">—</b></span><span>G 梯度（裁剪前）<b id="gradient-metric">—</b></span></div>
-        <section class="panel console-panel"><div class="panel-title"><h2><span class="section-number">03</span> 实时日志</h2><div class="console-tools"><label><input id="errors-only" type="checkbox"> 仅错误</label><label><input id="auto-scroll" type="checkbox" checked> 自动滚动</label><a id="download-log" class="text-button hidden" download>下载日志 ↓</a></div></div><div id="failure" class="failure hidden" role="alert"></div><pre id="console" aria-label="训练输出" tabindex="0"><span class="console-placeholder">AGED TRAINING STUDIO
+        <section class="panel chart-panel"><div class="panel-title"><h2><span class="section-number">02</span> Learning curves</h2><span class="live-label"><i></i> LIVE</span></div><div class="chart-grid"><div><div class="chart-heading">Reconstruction & generator loss <span>By update</span></div><div id="loss-chart" class="chart"><div class="chart-empty">Real metrics appear after training starts</div></div></div><div><div class="chart-heading">S11 / validation error <span>By epoch</span></div><div id="validation-chart" class="chart"><div class="chart-empty">Enable validation to see this chart</div></div></div></div><div class="chart-note">Loss scales vary by model variant. Finite values do not establish convergence. Use validation for development; reserve S5 for final evaluation.</div></section>
+        <div class="diagnostics"><span>Fidelity accuracy <b id="fidelity-metric">—</b></span><span>Continuity accuracy <b id="continuity-metric">—</b></span><span>G gradient (before clipping)<b id="gradient-metric">—</b></span></div>
+        <section class="panel console-panel"><div class="panel-title"><h2><span class="section-number">03</span> Live log</h2><div class="console-tools"><label><input id="errors-only" type="checkbox"> Errors only</label><label><input id="auto-scroll" type="checkbox" checked> Auto-scroll</label><a id="download-log" class="text-button hidden" download>Download log ↓</a></div></div><div id="failure" class="failure hidden" role="alert"></div><pre id="console" aria-label="Training output" tabindex="0"><span class="console-placeholder">AGED TRAINING STUDIO
 
-配置一个实验，然后开始训练。
-这里会实时显示训练输出、警告和完整的异常堆栈。
+Configure an experiment, then start training.
+Training output, warnings and full exception traces appear here.
 
-初次读取数据时尚无曲线，请查看日志并等待。</span></pre><div class="console-footer"><span id="log-caption">STDOUT + STDERR</span><span id="log-count">0 行</span></div></section>
-        <section id="run-details" class="panel run-details hidden"><div><span class="detail-label">输出与检查点</span><code id="run-out"></code><div id="checkpoints"></div></div><details><summary>等价命令行</summary><pre id="command"></pre></details><div class="stop-actions"><span id="stop-note">关闭浏览器不停止训练；退出服务器会终止子进程。</span><button id="stop" class="secondary" type="button">本轮保存后停止</button><button id="force-stop" class="danger-text" type="button">立即终止</button></div></section>
+Charts start after data loading. Follow the log while you wait.</span></pre><div class="console-footer"><span id="log-caption">STDOUT + STDERR</span><span id="log-count">0 lines</span></div></section>
+        <section id="run-details" class="panel run-details hidden"><div><span class="detail-label">Output & checkpoints</span><code id="run-out"></code><div id="checkpoints"></div></div><details><summary>Equivalent command</summary><pre id="command"></pre></details><div class="stop-actions"><span id="stop-note">Closing the browser keeps training running. Exiting the server terminates its worker.</span><button id="stop" class="secondary" type="button">Stop after epoch</button><button id="force-stop" class="danger-text" type="button">Terminate now</button></div></section>
       </section>
     </div>
     <footer class="page-footer"><span>AGED / Adversarial Geometry-Aware Human Motion Prediction</span><span id="working-directory"></span></footer>
   </main>
-  <dialog id="browser-dialog"><div class="dialog-heading"><h2 id="browser-title">选择目录</h2><button type="button" data-close="browser-dialog" aria-label="关闭">×</button></div><div class="browser-toolbar"><button id="browse-parent" type="button" class="secondary">↑ 上级</button><input id="browse-path" aria-label="目录路径"><button id="browse-go" class="secondary" type="button">前往</button></div><div id="browse-drives"></div><div id="browse-error" class="notice error hidden"></div><div id="browse-entries"></div><div class="dialog-actions"><button data-close="browser-dialog" type="button" class="secondary">取消</button><button id="browse-select" type="button" class="primary">使用此目录</button></div></dialog>
-  <dialog id="config-dialog"><div class="dialog-heading"><h2>有效训练配置</h2><button type="button" data-close="config-dialog" aria-label="关闭">×</button></div><p>完整 Config 参数；路径与运行方式另外保存在任务记录中。</p><pre id="config-json"></pre><div class="dialog-actions"><button id="download-config" class="primary" type="button">下载 config.json</button></div></dialog>
+  <dialog id="browser-dialog"><div class="dialog-heading"><h2 id="browser-title">Select a directory</h2><button type="button" data-close="browser-dialog" aria-label="Close">×</button></div><div class="browser-toolbar"><button id="browse-parent" type="button" class="secondary">↑ Parent</button><input id="browse-path" aria-label="Directory path"><button id="browse-go" class="secondary" type="button">Go</button></div><div id="browse-drives"></div><div id="browse-error" class="notice error hidden"></div><div id="browse-entries"></div><div class="dialog-actions"><button data-close="browser-dialog" type="button" class="secondary">Cancel</button><button id="browse-select" type="button" class="primary">Use this directory</button></div></dialog>
+  <dialog id="config-dialog"><div class="dialog-heading"><h2>Effective training configuration</h2><button type="button" data-close="config-dialog" aria-label="Close">×</button></div><p>Complete Config parameters. Paths and run mode are stored separately in the job record.</p><pre id="config-json"></pre><div class="dialog-actions"><button id="download-config" class="primary" type="button">Download config.json</button></div></dialog>
 </body>
 </html>

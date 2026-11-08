@@ -1,0 +1,4 @@
+variant=fidelity device=cuda motion_dim=48 horizon=10
+train_subjects=['S1', 'S6', 'S7', 'S8', 'S9', 'S11']; validation=None; S5 excluded from training
+{"epoch": 1, "fidelity_accuracy": 0.98265625, "discriminator_loss": 0.11919478804215032, "discriminator_grad_norm": 0.6516386743437033, "generator_loss": 274.3976847076416, "reconstruction": 274.40569717407226, "generator_adversarial": -0.013353882153060112, "generator_grad_norm": 521.4760564422608, "seconds": 5.515000000000327}
+Checkpoint: C:\Users\hxche\Documents\GitHub\ai6103-team-project-aged-reimplementation\experiments\integration-check-224b948-20261108-1451\runs\fidelity-short\last.pt

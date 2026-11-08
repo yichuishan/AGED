@@ -19,6 +19,9 @@ not been reproduced.** Start with the
 [paper alignment](docs/PAPER_ALIGNMENT.md),
 [source audit](docs/PROVENANCE.md) and [validation scope](docs/VALIDATION.md).
 
+The team's original GPU report, logs and result files are preserved under
+[docs/integration-checks/224b948](docs/integration-checks/README.md).
+
 The remaining team branches are now reconciled functionally. See
 [team contributions and compatibility](docs/TEAM_INTEGRATION.md) for the source
 commits, preserved capabilities, and compatibility boundaries. Existing commands,
@@ -117,7 +120,7 @@ lambda 0.6 and both recurrent discriminators.
 
 Existing short/long configs retain **Adam at LR 0.005** for compatibility. The
 team's earlier GPU diagnostic found this combination unstable. Before launching
-50 epochs, follow the [short SGD check](docs/GPU_TRAINING_GUIDE.md#最快验证流程)
+50 epochs, follow the [short SGD check](docs/GPU_TRAINING_GUIDE.md#fastest-validation-workflow)
 on S11; keeping the command interface compatible does not establish convergence.
 
 ```bash
