@@ -29,25 +29,42 @@ def environment():
 class Tracker:
     """JSON artifacts are always written by the trainer; TensorBoard is optional."""
 
-    def __init__(self, backend, run_dir, config):
+    def __init__(self, backend, run_dir, config, project="aged"):
         self.writer = None
+        self.run = None
+        self.backend = "none"
         if backend == "none":
             return
+        if backend == "wandb":
+            try:
+                import wandb
+                self.run = wandb.init(project=project, dir=str(run_dir), config=config,
+                                      name=Path(run_dir).name)
+                self.backend = "wandb" if self.run is not None else "none"
+            except Exception as error:
+                print(f"wandb unavailable ({type(error).__name__}); continuing with JSON results.")
+            return
         if backend != "tensorboard":
-            raise ValueError("supported tracking backends are none and tensorboard")
+            raise ValueError("supported tracking backends are none, tensorboard and wandb")
         try:
             from torch.utils.tensorboard import SummaryWriter
         except ImportError:
             print("TensorBoard is not installed; continuing with JSON results.")
             return
         self.writer = SummaryWriter(log_dir=str(Path(run_dir) / "tb"))
+        self.backend = "tensorboard"
         self.writer.add_text("config", json.dumps(config, indent=2))
 
-    def log(self, step, metrics):
+    def log(self, step, metrics, prefix=""):
+        metrics = {prefix + key: value for key, value in metrics.items() if isinstance(value, (float, int))}
         if self.writer is not None:
             for key, value in metrics.items():
                 self.writer.add_scalar(key, value, step)
+        if self.run is not None:
+            self.run.log(metrics, step=step)
 
     def close(self):
         if self.writer is not None:
             self.writer.close()
+        if self.run is not None:
+            self.run.finish()

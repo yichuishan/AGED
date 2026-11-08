@@ -1,4 +1,4 @@
-"""Integration scaffold; adversarial components remain optional."""
+"""Complete AGED component container, including predictor-only ablations."""
 
 from torch import Tensor, nn
 
@@ -6,7 +6,7 @@ from .predictor import MotionPredictor
 
 
 class AGEDModel(nn.Module):
-    """Register independent components without implementing their algorithms."""
+    """Register the predictor and independent fidelity/continuity critics."""
 
     def __init__(
         self,
