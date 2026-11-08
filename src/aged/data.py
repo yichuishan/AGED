@@ -97,22 +97,26 @@ class WindowDataset(Dataset):
     """Action-labeled random windows, deterministic by (seed, epoch, index)."""
 
     def __init__(self, root, norm, subjects, actions=ACTIONS, observed_length=50,
-                 prediction_length=10, length=32000, seed=0):
+                 prediction_length=10, length=32000, seed=0,
+                 sampling_strategy="windows", minimum_start=0):
         self.norm, self.observed_length = norm, observed_length
         self.prediction_length, self.length, self.seed = prediction_length, length, seed
         self.epoch = 0
+        if sampling_strategy not in ("windows", "recordings") or minimum_start < 0:
+            raise ValueError("invalid sampling strategy or minimum start")
+        self.sampling_strategy, self.minimum_start = sampling_strategy, minimum_start
         self.window = observed_length + prediction_length
         self.sequences, self.labels = [], []
         for subject in subjects:
             for action in actions:
                 for take in (1, 2):
                     raw = load_raw(root, subject, action, take)
-                    if len(raw) >= self.window:
+                    if len(raw) >= self.window + minimum_start:
                         self.sequences.append(norm.apply(raw))
                         self.labels.append(ACTIONS.index(action))
         if not self.sequences:
             raise ValueError("no recordings are long enough for the configured window")
-        self.weights = np.array([len(seq) - self.window + 1 for seq in self.sequences], dtype=float)
+        self.weights = np.array([len(seq) - self.window - minimum_start + 1 for seq in self.sequences], dtype=float)
         self.weights /= self.weights.sum()
 
     def set_epoch(self, epoch):
@@ -123,8 +127,9 @@ class WindowDataset(Dataset):
 
     def __getitem__(self, index):
         rng = np.random.default_rng(np.random.SeedSequence([self.seed, self.epoch, index]))
-        selected = int(rng.choice(len(self.sequences), p=self.weights))
+        selected = (int(rng.choice(len(self.sequences), p=self.weights))
+                    if self.sampling_strategy == "windows" else int(rng.integers(len(self.sequences))))
         sequence = self.sequences[selected]
-        start = int(rng.integers(len(sequence) - self.window + 1))
+        start = int(rng.integers(self.minimum_start, len(sequence) - self.window + 1))
         window = torch.from_numpy(sequence[start:start + self.window].copy())
         return window[:self.observed_length], window[self.observed_length:], torch.tensor(self.labels[selected])

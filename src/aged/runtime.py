@@ -42,8 +42,9 @@ def build_model(config: Config, norm: Normalisation):
         prediction_length=config.prediction_length, condition_decoder=config.condition_decoder,
         share_recurrent_weights=config.share_recurrent_weights,
     )
-    fidelity = Critic(norm.n_dims, config.critic_hidden_dim) if config.variant in ("full", "euclidean", "fidelity") else None
-    continuity = Critic(norm.n_dims, config.critic_hidden_dim) if config.variant in ("full", "euclidean", "continuity") else None
+    options = {"architecture": config.critic_architecture, "output_layout": config.critic_output_layout}
+    fidelity = Critic(norm.n_dims, config.critic_hidden_dim, **options) if config.variant in ("full", "euclidean", "fidelity") else None
+    continuity = Critic(norm.n_dims, config.critic_hidden_dim, **options) if config.variant in ("full", "euclidean", "continuity") else None
     return AGEDModel(predictor, fidelity, continuity)
 
 
@@ -60,6 +61,10 @@ def load_checkpoint(path):
         raise ValueError("unsupported checkpoint; legacy standalone predictor weights are not full AGED checkpoints")
     if checkpoint.get("action_names") != ACTIONS:
         raise ValueError("checkpoint action mapping differs from this package")
+    # Optional fields extend v1 without changing existing architecture or defaults.
+    checkpoint["config"] = Config(**checkpoint["config"]).to_dict()
+    checkpoint.setdefault("step", checkpoint["epoch"] * checkpoint["config"]["steps_per_epoch"])
+    checkpoint.setdefault("since_best", 0)
     return checkpoint
 
 

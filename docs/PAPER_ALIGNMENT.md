@@ -41,6 +41,10 @@ retrieved during integration.
   batch; the original optimizer and schedule are not named. The generator's
   default is the paper's saturating minimax form `log(1-D(fake))`. Optional
   `non_saturating` uses `-log D(fake)` and is explicitly a deviation.
+  The training owner's SGD/Adam selection, per-critic optimizers and step decay
+  are also implemented as optional settings. Defaults remain unchanged for v1
+  checkpoint compatibility; `configs/team-reference.yaml` selects the team's
+  reference choices explicitly for new experiments.
 - **Loss scale:** Eq. 4 sums time/joints; minibatches are averaged here. Optional
   mean-over-time/joints changes relative adversarial strength and is an ablation.
   Discriminators minimize negative log-likelihood without lambda scaling; positive
@@ -50,6 +54,9 @@ retrieved during integration.
   team's export contract, not a file format specified by AGED. No BVH parser is
   included. Normalization at 25 Hz, threshold 1e-4, streaming population moments,
   length-weighted window sampling and 2000 steps/epoch are engineering choices.
+  Uniform recording sampling with a minimum start of 16 is available as the
+  team's alternative. It includes the final valid window; exact training draw
+  streams are not claimed identical to another implementation.
 - **Validation:** default training uses all six training subjects. An optional
   S11 development holdout fits statistics on the other five and selects `best.pt`
   by mean Euler error. S5 is never used for checkpoint selection.
@@ -75,6 +82,9 @@ distinction and Euler convention must be checked against real baseline results.
 The legacy evaluation instead sampled arbitrary windows and compared reduced
 exponential-map vectors. Those numbers are not interchangeable with these scores.
 All evaluations include a raw-pose zero-velocity baseline for comparison.
+The team training branch's short-term reference table and an opt-in numerical
+comparison are now included. A protocol name alone never marks a benchmark as
+reproduced; `--check-baseline` compares real scores and reports mismatches.
 
 **Real Human3.6M data, a matching baseline table, GPU execution and a full
 50-epoch run have not been validated in this environment. No published accuracy

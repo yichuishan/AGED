@@ -15,6 +15,12 @@ execution have not been validated here.** See
 [paper alignment](docs/PAPER_ALIGNMENT.md),
 [source audit](docs/PROVENANCE.md) and [validation scope](docs/VALIDATION.md).
 
+The remaining team branches are now reconciled functionally. See
+[team contributions and compatibility](docs/TEAM_INTEGRATION.md) for the source
+commits, preserved capabilities, and compatibility boundaries. Existing commands,
+short/long YAML files, tensor layouts and v1 integration checkpoints still work;
+the new team options do not silently change an experiment already in progress.
+
 ## Install for GPU training
 
 Run commands from the repository root, using Python 3.10 or later on a machine
@@ -142,6 +148,56 @@ or architecture are rejected on resume; use the same underlying dataset.
 Results, environment/code version, effective configuration, normalization
 metadata, command history and checkpoints are written into the run directory.
 
+### Additional team training capabilities (optional)
+
+Existing training commands need no extra flags. The following options bring in
+the training/evaluation owner's capabilities without changing existing defaults:
+
+| Options | Capability |
+| --- | --- |
+| `--optimizer sgd`, `--critic-optimizer adam`, `--critic-learning-rate` | Separate G/D optimizer choices and rates |
+| `--learning-rate-decay 0.95 --learning-rate-decay-every 10000` | Step-based learning-rate schedule, restored on resume |
+| `--sampling-strategy recordings --minimum-start 16` | Uniform recording sampling and configurable minimum frame |
+| `--critic-architecture direct --critic-output-layout column` | Team direct-GRU critic and `[B,1]` scores |
+| `--separate-critic-optimizers` | Independent optimizers and gradient clipping for each critic |
+| `--patience 8 --select-on angle_error` | Validation-only early stopping; `val_loss` is also available |
+| `--save-every 5` | Retain `epoch_005.pt`, etc., in addition to last/best |
+| `--track wandb --project aged` | Optional wandb tracking after `pip install -e '.[wandb]'` |
+
+The team aliases `--lr`, `--lr-critic`, `--lr-decay`, `--lr-decay-every`,
+`--hidden`, `--adv-form non-saturating`, `--variant adv-euc`, and `--final`
+are accepted. Canonical config values and original command flags remain valid.
+The optional contributor notebook can be opened in Jupyter/VS Code; install
+`python -m pip install -e '.[analysis]'` if its plotting dependencies are needed.
+This is not required for the production training/evaluation commands.
+
+To explicitly select the reconciled team reference settings for a **new** run:
+
+```bash
+python -m aged.train --root data/h36m --config configs/team-reference.yaml \
+  --out experiments/team-reference --device cuda
+```
+
+That profile chooses direct/column critics, separate optimizers, SGD with decay,
+uniform recording sampling and non-saturating GAN loss. These are reported
+implementation choices, not additional facts stated by AGED. It holds out S11;
+append `--final` for six-subject training. Do not switch an existing run to this
+different architecture/objective using `--resume`.
+
+Warm-start a **new** run using a checkpoint's predictor and optimizer while
+initializing new critics. Epoch count and the LR schedule continue from source;
+the dataset/normalization and predictor optimizer type must match:
+
+```bash
+python -m aged.train --root data/h36m --out experiments/warm-full \
+  --init-from experiments/plain/last.pt --variant full --epochs 50 --device cuda
+```
+
+Without an explicit YAML, warm start inherits the source configuration before
+CLI overrides. Changing the architecture requires a new run; checkpoint loading
+does not silently reshape weights. Update a running experiment only after it
+has stopped at a saved checkpoint, then use the same existing resume command.
+
 ## Evaluate
 
 ```bash
@@ -173,6 +229,18 @@ The eight-window sampling and Euler convention follow the protocol documented
 in the team archive; **agreement with published baseline tables still needs
 real-data verification**. Longer rollouts do not establish long-term accuracy.
 
+The training/evaluation owner's published zero-velocity regression check is
+available explicitly, without changing the normal evaluation command:
+
+```bash
+python -m aged.evaluate --root data/h36m --baseline --check-baseline \
+  --output experiments/published-baseline-check.json
+```
+
+This writes actual/reference differences into JSON and exits nonzero on a
+mismatch. It checks short-term entries only and documents the team's inferred
+Sitting/160 ms table correction. Synthetic data must fail this benchmark check.
+
 ## Whole-pipeline tests
 
 ```bash
@@ -189,9 +257,11 @@ Synthetic tests are engineering validation, not the final research experiment.
 ## Layout
 
 ```text
-configs/                 short-term and long-term experiment settings
+configs/                 short/long settings plus optional team reference profile
 data/README.md           data contract (recordings are ignored)
 docs/                    architecture, paper alignment, audit and validation
+docs/experiments/        original team experiment records, clearly labeled historical
+notebooks/              adapted optional continuity experiment (outputs cleared)
 scripts/setup.sh         environment helper
 src/aged/
   models/                single encoder/decoder/predictor implementation

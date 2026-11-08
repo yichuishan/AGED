@@ -47,7 +47,8 @@ minimizes geodesic reconstruction plus lambda times the selected adversarial
 objective. Both optimizers have finite-gradient checks and norm clipping.
 One discriminator update precedes one predictor update per batch.
 
-`Critic.forward(sequence)` returns probabilities `[B]`. Training uses its
+`Critic.forward(sequence)` returns probabilities `[B]` by default; the team's
+column layout `[B,1]` is selectable without changing predictor output. Training uses its
 `logits(sequence)` to evaluate log-probabilities stably. Fidelity consumes
 `[B,H,K]`. Continuity consumes `torch.cat((observed,future), dim=1)` of shape
 `[B,50+H,K]`; the last observed seed appears exactly once. Neither discriminator
@@ -87,7 +88,19 @@ Epoch-based window sampling is stateless in `(seed,epoch,index)` and changes
 between epochs. CPU resume is tested against uninterrupted training, including
 optimizer tensors. Resume must preserve data contents and training settings;
 only total epochs, device, thread/worker counts and logging can be changed.
+Validation patience and periodic snapshot frequency may also change. New v1
+checkpoints additionally record the completed step count and early-stop counter.
+Older integration v1 files acquire compatible defaults when read; model weight
+names and the default projected critic architecture have not changed.
 Evaluation reuses checkpoint statistics and never refits them on S5.
+
+Optional direct critics, separate D optimizers, SGD, LR decay, recording-uniform
+sampling, warm start and snapshot retention are described in
+`TEAM_INTEGRATION.md`. In separate mode each D is clipped individually. In the
+default joint mode the original loss accumulation order is retained, including
+backpropagation ordering, to preserve old CPU continuation exactly. A warm start
+copies the predictor and its optimizer, fits/checks the same normalization, and
+leaves critics fresh; it is distinct from restoring an entire run.
 
 All model tensors follow the caller's device. Select CUDA or MPS explicitly or
 use `auto`; explicit requests fail if unavailable. CUDA/MPS numerical behavior

@@ -33,7 +33,30 @@ not a guessed live repository version, is the reviewed source snapshot.
 The team's action vocabulary, subject split, export layout, normalization
 structure, geometric `atan2` approach and experiment-tracking pattern informed
 the integration. The existing personal predictor was retained and relocated.
-The discriminator, trainer and checkpoint lifecycle were completed here.
+The initial integration completed a discriminator, trainer and checkpoint
+lifecycle from that main snapshot. It did not include the then-unmerged work
+described below; those contributions have now been reconciled explicitly.
+
+## Subsequently provided feature branches
+
+| Branch archive | Recorded revision | Archive SHA-256 |
+| --- | --- | --- |
+| continuity | `8d29ffae5baab34585fa5c349dd3ab2065ecc03a` | `746b1cea8f0fda5c2d96d7a1e5997cc32196b70415ef9c45d6dd8eda27b44976` |
+| fidelity | `52cadeefaf80c71f93336d3ae31f0af6df96a430` | `211edddef27453408edae8b155e626df76b68ce9fe0633257147b098c23ae186` |
+| training/eval | `a0420214e112d3343a4e67cc7da47873e22f0087` | `50c3994ee6c7a989b08183bf12a83282b6df192c121b624b18d23098b5fa536c` |
+
+The common critic, stable loss helpers, continuity experiment, optimization and
+sampling policies, warm start, early stopping, periodic snapshots and published
+baseline check are team contributions. They are retained or adapted into the
+current API, not claimed as newly invented work by the integrator. See
+`TEAM_INTEGRATION.md` for the function/test map. Original continuity assets are
+copied byte-for-byte; the notebook is adapted with outputs cleared and long
+experiments disabled by default.
+
+ZIP snapshots lack full author/parent Git objects. Recording source revisions
+does not recreate the members' original Git histories; preserve the original
+branches/PRs for authorship records. Common older stub files in those branches
+were not used to roll back completed geometry or preprocessing fixes.
 
 The archive also contained audit scripts labeled as verbatim ports of another
 implementation. They were inspected for documented protocol constants but were

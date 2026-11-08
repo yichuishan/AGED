@@ -1,0 +1,27 @@
+# Optional reconciled team settings. Existing short/long configs are unchanged.
+# Optimizer/sampling defaults here follow the team's stated reference choices,
+# not additional facts explicitly specified by AGED. No existing run uses this
+# profile unless the caller explicitly selects it.
+variant: full
+observed_length: 50
+prediction_length: 10
+hidden_dim: 1024
+critic_hidden_dim: 1024
+critic_architecture: direct
+critic_output_layout: column
+separate_critic_optimizers: true
+optimizer: sgd
+learning_rate: 0.005
+learning_rate_decay: 0.95
+learning_rate_decay_every: 10000
+sampling_strategy: recordings
+minimum_start: 16
+adversarial_objective: non_saturating
+geodesic_reduction: sum
+lambda_adv: 0.6
+gradient_clip: 5.0
+batch_size: 16
+epochs: 50
+steps_per_epoch: 2000
+val_subject: S11
+patience: 8

@@ -12,6 +12,41 @@ from .runtime import load_model, pick_device
 
 TEST_SEED = 1234567890
 
+# Team training/evaluation contribution: published zero-velocity reference table.
+# Sitting at 160 ms uses the team's documented 0.63 correction, inferred from
+# the table's average; the printed 1.63 is not silently treated as a match.
+PUBLISHED_ZERO_VELOCITY = {
+    "directions": (0.39, 0.59, 0.79, 0.89), "discussion": (0.31, 0.67, 0.94, 1.04),
+    "eating": (0.27, 0.48, 0.73, 0.86), "greeting": (0.54, 0.89, 1.30, 1.49),
+    "phoning": (0.64, 1.21, 1.65, 1.83), "posing": (0.28, 0.57, 1.13, 1.37),
+    "purchases": (0.62, 0.88, 1.19, 1.27), "sitting": (0.40, 0.63, 1.02, 1.18),
+    "sittingdown": (0.39, 0.74, 1.07, 1.19), "smoking": (0.26, 0.48, 0.97, 0.95),
+    "takingphoto": (0.25, 0.51, 0.79, 0.92), "waiting": (0.34, 0.67, 1.22, 1.47),
+    "walking": (0.39, 0.68, 0.99, 1.15), "walkingdog": (0.60, 0.98, 1.36, 1.50),
+    "walkingtogether": (0.33, 0.66, 0.94, 0.99),
+}
+
+
+def published_baseline_report(result, tolerance=0.0055):
+    """Compare actual baseline numbers; never label a protocol flag as accuracy proof."""
+    if not np.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("baseline tolerance must be finite and nonnegative")
+    entries = []
+    for action, row in result["per_action"].items():
+        if action not in PUBLISHED_ZERO_VELOCITY:
+            continue
+        for ms, reference in zip((80, 160, 320, 400), PUBLISHED_ZERO_VELOCITY[action]):
+            values = row["zero_velocity"]
+            actual = values.get(ms, values.get(str(ms)))
+            if actual is not None:
+                difference = abs(float(actual) - reference)
+                entries.append({"action": action, "milliseconds": ms, "actual": float(actual),
+                                "reference": reference, "absolute_error": difference,
+                                "passed": bool(np.isfinite(actual) and difference <= tolerance)})
+    return {"passed": bool(entries) and all(entry["passed"] for entry in entries),
+            "checked_entries": len(entries), "tolerance": tolerance, "entries": entries,
+            "note": "Short-term table only; Sitting 160 ms uses the documented inferred 0.63 correction."}
+
 
 def srnn_test_indices(lengths: tuple[int, int], horizon=10):
     """Eight alternating take windows from the protocol documented by the team.
@@ -139,7 +174,7 @@ def score(root, checkpoint=None, actions=None, horizon=None, device="cpu"):
     }
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -150,15 +185,21 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--output", default="experiments/evaluation.json")
-    args = parser.parse_args()
+    parser.add_argument("--check-baseline", action="store_true", help="compare real zero-velocity scores to the published table; nonzero exit if mismatched")
+    parser.add_argument("--baseline-tolerance", type=float, default=0.0055)
+    args = parser.parse_args(argv)
     torch.set_num_threads(args.threads)
     result = score(args.root, args.checkpoint, args.actions, args.horizon, args.device)
+    if args.check_baseline:
+        result["baseline_check"] = published_baseline_report(result, args.baseline_tolerance)
     path = Path(args.output)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     for action, row in result["per_action"].items():
         print(action, json.dumps(row))
     print(f"Evaluation written to {path}")
+    if args.check_baseline and not result["baseline_check"]["passed"]:
+        raise SystemExit("Zero-velocity baseline does not match the published table; inspect baseline_check in the saved JSON.")
 
 
 if __name__ == "__main__":
